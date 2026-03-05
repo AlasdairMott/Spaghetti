@@ -16,10 +16,14 @@ interface Props {
 /** Compute LED X positions for a given count, spread horizontally */
 function ledXPositions(count: number): number[] {
   switch (count) {
-    case 1: return [0];
-    case 2: return [-2, 2];
-    case 3: return [-2.5, 0, 2.5];
-    default: return [];
+    case 1:
+      return [0];
+    case 2:
+      return [-2, 2];
+    case 3:
+      return [-2.5, 0, 2.5];
+    default:
+      return [];
   }
 }
 
@@ -37,7 +41,7 @@ export function ButtonSymbol({
 
   // When LEDs present: shift button down, LEDs up, label below button
   const buttonOffsetY = hasLeds ? 2 : 0;
-  const ledOffsetY = hasLeds ? -4 : 0;
+  const ledOffsetY = hasLeds ? -2 : 0;
   const labelY = hasLeds ? 8 : -8;
 
   return (
@@ -49,11 +53,12 @@ export function ButtonSymbol({
       onDoubleClick={onDoubleClick}
       style={{ cursor: "pointer" }}
     >
-      {hasLeds && ledXPositions(ledCount).map((lx, i) => (
-        <g key={i} transform={`translate(${lx}, ${ledOffsetY})`}>
-          <LedShape />
-        </g>
-      ))}
+      {hasLeds &&
+        ledXPositions(ledCount).map((lx, i) => (
+          <g key={i} transform={`translate(${lx}, ${ledOffsetY})`}>
+            <LedShape />
+          </g>
+        ))}
       <g transform={`translate(0, ${buttonOffsetY})`}>
         <ButtonShape stroke={isSelected ? "#4af" : "#aaa"} />
       </g>

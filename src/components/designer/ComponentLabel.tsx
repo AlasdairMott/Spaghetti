@@ -2,10 +2,10 @@ import type { PanelComponent, LabelColor } from "../../models/types";
 import { useAppStore } from "../../store";
 
 const COLOR_MAP: Record<Exclude<LabelColor, "custom">, string> = {
-  yellow: "#fd0",
-  blue: "#48f",
-  red: "#f44",
-  green: "#4d4",
+  yellow: "#E5C31F",
+  blue: "#5A7CB8",
+  red: "#DC1F3A",
+  green: "#98B657",
 };
 
 interface Props {
@@ -36,14 +36,14 @@ export function ComponentLabel({ component, y }: Props) {
           textAnchor="middle"
           fill={textColor}
           fontSize={2}
-          style={{ userSelect: "none" }}
+          style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
         >
           {component.label}
         </text>
       )}
       {dotColor && (
         <circle
-          cx={component.label ? dotOffset : 0}
+          cx={component.label ? -dotOffset : 0}
           cy={component.label ? y - 0.7 : y - 0.7}
           r={0.7}
           fill={dotColor}

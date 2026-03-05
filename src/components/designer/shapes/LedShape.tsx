@@ -1,4 +1,5 @@
 import { useAppStore } from "../../../store";
+import ledSvgUrl from "../../../assets/led.svg";
 
 interface Props {
   color?: string;
@@ -8,22 +9,27 @@ export function LedShape({ color = "#f44" }: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
 
   if (renderMode === "rendered") {
-    const gradId = `led-glow-${color.replace("#", "")}`;
+    const size = 2.5;
     return (
       <>
         <defs>
-          <radialGradient id={gradId} cx="40%" cy="35%">
-            <stop offset="0%" stopColor="#fff" stopOpacity={0.6} />
-            <stop offset="40%" stopColor={color} stopOpacity={0.9} />
-            <stop offset="100%" stopColor={color} stopOpacity={0.5} />
-          </radialGradient>
+          <filter id="led-shadow" x="-20%" y="-20%" width="150%" height="150%">
+            <feDropShadow
+              dx={0.1}
+              dy={0.1}
+              stdDeviation={0.4}
+              floodOpacity={0.3}
+            />
+          </filter>
         </defs>
-        {/* Glow */}
-        <circle r={1.8} fill={color} opacity={0.15} />
-        {/* Body */}
-        <circle r={1} fill={`url(#${gradId})`} />
-        {/* Specular highlight */}
-        <circle cx={-0.25} cy={-0.25} r={0.35} fill="#fff" opacity={0.5} />
+        <image
+          href={ledSvgUrl}
+          x={-size / 2}
+          y={-size / 2}
+          width={size}
+          height={size}
+          filter="url(#led-shadow)"
+        />
       </>
     );
   }

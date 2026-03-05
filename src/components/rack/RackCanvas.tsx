@@ -247,7 +247,7 @@ export function RackCanvas() {
                                   ? [-2, 2]
                                   : [-2.5, 0, 2.5]
                               ).map((lx, i) => (
-                                <g key={i} transform={`translate(${lx}, -4)`}>
+                                <g key={i} transform={`translate(${lx}, -2)`}>
                                   <LedShape />
                                 </g>
                               ))}
@@ -314,7 +314,7 @@ export function RackCanvas() {
                               dominantBaseline="central"
                               fill={textColor}
                               fontSize={2.5}
-                              style={{ userSelect: "none" }}
+                              style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
                             >
                               {conn.label}
                             </text>
@@ -325,11 +325,11 @@ export function RackCanvas() {
                     {/* Module name label */}
                     <text
                       x={modWidth / 2}
-                      y={PANEL_HEIGHT - 4}
+                      y={6}
                       textAnchor="middle"
                       fill={textColor}
                       fontSize={3}
-                      style={{ userSelect: "none" }}
+                      style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
                     >
                       {mod.name}
                     </text>

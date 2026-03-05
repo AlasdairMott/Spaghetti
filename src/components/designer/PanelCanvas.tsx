@@ -24,6 +24,7 @@ export function PanelCanvas() {
   const svgRef = useRef<SVGSVGElement>(null);
   const editingModule = useAppStore((s) => s.editingModule);
   const activeTool = useAppStore((s) => s.activeTool);
+  const renderMode = useAppStore((s) => s.renderMode);
   const selectComponents = useAppStore((s) => s.selectComponents);
   const [previewPos, setPreviewPos] = useState<GridPosition | null>(null);
   const [cursorMm, setCursorMm] = useState<{ x: number; y: number } | null>(null);
@@ -146,6 +147,17 @@ export function PanelCanvas() {
       onPointerLeave={handlePointerLeave}
     >
       <PanelBackground widthHP={editingModule.widthHP} />
+      {/* Module name */}
+      <text
+        x={widthMm / 2}
+        y={6}
+        textAnchor="middle"
+        fill={renderMode === "rendered" ? "#231F20" : "#777"}
+        fontSize={3}
+        style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
+      >
+        {editingModule.name}
+      </text>
       <ConnectionLayer />
       <ComponentLayer svgRef={svgRef} />
       <SelectionOverlay />

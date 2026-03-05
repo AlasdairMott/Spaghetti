@@ -80,7 +80,7 @@ function ConnectionLine({
           dominantBaseline="central"
           fill={stroke}
           fontSize={2.5}
-          style={{ userSelect: "none" }}
+          style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
         >
           {conn.label}
         </text>
