@@ -314,7 +314,7 @@ export function RackCanvas() {
                               dominantBaseline="central"
                               fill={textColor}
                               fontSize={2.5}
-                              style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
+                              style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
                             >
                               {conn.label}
                             </text>
@@ -329,7 +329,7 @@ export function RackCanvas() {
                       textAnchor="middle"
                       fill={textColor}
                       fontSize={3}
-                      style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
+                      style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
                     >
                       {mod.name}
                     </text>

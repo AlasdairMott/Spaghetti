@@ -154,7 +154,7 @@ export function PanelCanvas() {
         textAnchor="middle"
         fill={renderMode === "rendered" ? "#231F20" : "#777"}
         fontSize={3}
-        style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
+        style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
       >
         {editingModule.name}
       </text>

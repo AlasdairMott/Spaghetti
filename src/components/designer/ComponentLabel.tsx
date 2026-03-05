@@ -36,7 +36,7 @@ export function ComponentLabel({ component, y }: Props) {
           textAnchor="middle"
           fill={textColor}
           fontSize={2}
-          style={{ userSelect: "none", fontFamily: "Pomegranate Grotesque" }}
+          style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
         >
           {component.label}
         </text>
