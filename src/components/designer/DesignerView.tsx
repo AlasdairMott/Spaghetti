@@ -10,7 +10,9 @@ export function DesignerView() {
   const createNewModule = useAppStore((s) => s.createNewModule);
   const setActiveTool = useAppStore((s) => s.setActiveTool);
   const removeComponent = useAppStore((s) => s.removeComponent);
+  const removeConnection = useAppStore((s) => s.removeConnection);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
+  const selectedConnectionId = useAppStore((s) => s.selectedConnectionId);
   const selectComponent = useAppStore((s) => s.selectComponent);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
@@ -45,10 +47,18 @@ export function DesignerView() {
         case "b":
           setActiveTool("addButton");
           break;
+        case "l":
+          setActiveTool("addLine");
+          break;
+        case "a":
+          setActiveTool("addArrow");
+          break;
         case "delete":
         case "backspace":
           if (selectedComponentIds.length > 0) {
             selectedComponentIds.forEach((id) => removeComponent(id));
+          } else if (selectedConnectionId) {
+            removeConnection(selectedConnectionId);
           }
           break;
         case "escape":
@@ -59,7 +69,7 @@ export function DesignerView() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [setActiveTool, removeComponent, selectedComponentIds, selectComponent, undo, redo]);
+  }, [setActiveTool, removeComponent, removeConnection, selectedComponentIds, selectedConnectionId, selectComponent, undo, redo]);
 
   // Auto-create a module if none is open
   useEffect(() => {

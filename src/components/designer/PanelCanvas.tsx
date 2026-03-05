@@ -8,6 +8,7 @@ import { usePanZoom } from "../../hooks/usePanZoom";
 import { useToolAction } from "../../hooks/useToolAction";
 import { PanelBackground } from "./PanelBackground";
 import { ComponentLayer } from "./ComponentLayer";
+import { ConnectionLayer } from "./ConnectionLayer";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { PlacementPreview } from "./PlacementPreview";
 import type { GridPosition } from "../../models/types";
@@ -25,6 +26,7 @@ export function PanelCanvas() {
   const activeTool = useAppStore((s) => s.activeTool);
   const selectComponents = useAppStore((s) => s.selectComponents);
   const [previewPos, setPreviewPos] = useState<GridPosition | null>(null);
+  const [cursorMm, setCursorMm] = useState<{ x: number; y: number } | null>(null);
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const isMarqueeing = useRef(false);
   const {
@@ -35,7 +37,7 @@ export function PanelCanvas() {
     handlePointerMove: panPointerMove,
     handlePointerUp: panPointerUp,
   } = usePanZoom();
-  const { handleCanvasClick } = useToolAction();
+  const { handleCanvasClick, lineStart } = useToolAction();
 
   if (!editingModule) return null;
 
@@ -47,6 +49,8 @@ export function PanelCanvas() {
   const vbY = panOffset.y - padding / zoom;
 
   const isPlacing = activeTool !== "select";
+  const isLineTool = activeTool === "addLine" || activeTool === "addArrow";
+  const isComponentTool = isPlacing && !isLineTool;
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     panPointerDown(e);
@@ -71,7 +75,12 @@ export function PanelCanvas() {
     }
     if (isPlacing && svgRef.current) {
       const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
-      setPreviewPos(snapToGrid(pt.x, pt.y));
+      if (isComponentTool) {
+        setPreviewPos(snapToGrid(pt.x, pt.y));
+      }
+      if (isLineTool) {
+        setCursorMm({ x: pt.x, y: pt.y });
+      }
     }
   };
 
@@ -105,6 +114,7 @@ export function PanelCanvas() {
 
   const handlePointerLeave = () => {
     setPreviewPos(null);
+    setCursorMm(null);
   };
 
   const cursor = activeTool === "select" ? "default" : "crosshair";
@@ -136,6 +146,7 @@ export function PanelCanvas() {
       onPointerLeave={handlePointerLeave}
     >
       <PanelBackground widthHP={editingModule.widthHP} />
+      <ConnectionLayer />
       <ComponentLayer svgRef={svgRef} />
       <SelectionOverlay />
       {marqueeRect && marqueeRect.width > 1 && (
@@ -151,12 +162,53 @@ export function PanelCanvas() {
           pointerEvents="none"
         />
       )}
-      {isPlacing && previewPos && (
+      {isComponentTool && previewPos && (
         <PlacementPreview
           position={previewPos}
           kind={activeTool === "addJack" ? "jack" : activeTool === "addPot" ? "pot" : "button"}
         />
       )}
+      {/* Line/arrow preview while drawing */}
+      {isLineTool && lineStart && cursorMm && (() => {
+        const pdx = cursorMm.x - lineStart.x;
+        const pdy = cursorMm.y - lineStart.y;
+        const plen = Math.hypot(pdx, pdy);
+        const pux = plen > 0 ? pdx / plen : 0;
+        const puy = plen > 0 ? pdy / plen : 0;
+        const isArr = activeTool === "addArrow";
+        const aH = 1.5, aW = 0.75, aG = 0.8;
+        const leX = isArr ? cursorMm.x - pux * (aH + aG) : cursorMm.x;
+        const leY = isArr ? cursorMm.y - puy * (aH + aG) : cursorMm.y;
+        return (
+        <g pointerEvents="none">
+          <line
+            x1={lineStart.x}
+            y1={lineStart.y}
+            x2={leX}
+            y2={leY}
+            stroke="#4af"
+            strokeWidth={0.4}
+            strokeDasharray="1 0.5"
+            opacity={0.7}
+          />
+          {isArr && plen > aH + aG && (() => {
+            const bX = cursorMm.x - pux * aH;
+            const bY = cursorMm.y - puy * aH;
+            const ppX = -puy * aW;
+            const ppY = pux * aW;
+            return (
+              <polygon
+                points={`${cursorMm.x},${cursorMm.y} ${bX + ppX},${bY + ppY} ${bX - ppX},${bY - ppY}`}
+                fill="#4af"
+                opacity={0.7}
+              />
+            );
+          })()}
+          {/* Start point indicator */}
+          <circle cx={lineStart.x} cy={lineStart.y} r={0.6} fill="#4af" opacity={0.7} />
+        </g>
+        );
+      })()}
     </svg>
   );
 }

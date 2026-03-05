@@ -73,6 +73,7 @@ export function PanelBackground({ widthHP }: Props) {
         y2={topLineY}
         stroke={lineColor}
         strokeWidth={0.2}
+        strokeLinecap="round"
       />
       {/* Bottom grid line */}
       <line
@@ -82,6 +83,7 @@ export function PanelBackground({ widthHP }: Props) {
         y2={bottomLineY}
         stroke={lineColor}
         strokeWidth={0.2}
+        strokeLinecap="round"
       />
     </>
   );

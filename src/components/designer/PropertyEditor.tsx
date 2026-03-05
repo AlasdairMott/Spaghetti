@@ -5,10 +5,14 @@ export function PropertyEditor() {
   const selectedId = useAppStore((s) => s.selectedComponentId);
   const updateComponent = useAppStore((s) => s.updateComponent);
   const removeComponent = useAppStore((s) => s.removeComponent);
+  const selectedConnectionId = useAppStore((s) => s.selectedConnectionId);
+  const updateConnection = useAppStore((s) => s.updateConnection);
+  const removeConnection = useAppStore((s) => s.removeConnection);
   const updateModuleName = useAppStore((s) => s.updateModuleName);
   const updateModuleWidth = useAppStore((s) => s.updateModuleWidth);
 
   const component = editingModule?.components.find((c) => c.id === selectedId);
+  const connection = editingModule?.connections?.find((c) => c.id === selectedConnectionId);
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -43,7 +47,67 @@ export function PropertyEditor() {
         Properties
       </div>
 
-      {!component ? (
+      {connection ? (
+        <>
+          <div>
+            <span style={labelStyle}>Type</span>
+            <div style={{ fontSize: 13, color: "#ddd", textTransform: "capitalize" }}>
+              {connection.kind}
+            </div>
+          </div>
+
+          <div>
+            <span style={labelStyle}>Label</span>
+            <input
+              style={inputStyle}
+              value={connection.label ?? ""}
+              onChange={(e) => updateConnection(connection.id, { label: e.target.value || undefined })}
+              placeholder="Enter label..."
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <span style={labelStyle}>Start Offset (mm)</span>
+              <input
+                style={inputStyle}
+                type="number"
+                value={connection.startOffset ?? 0}
+                onChange={(e) => updateConnection(connection.id, { startOffset: parseFloat(e.target.value) || 0 })}
+                step={0.5}
+                min={0}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <span style={labelStyle}>End Offset (mm)</span>
+              <input
+                style={inputStyle}
+                type="number"
+                value={connection.endOffset ?? 0}
+                onChange={(e) => updateConnection(connection.id, { endOffset: parseFloat(e.target.value) || 0 })}
+                step={0.5}
+                min={0}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => removeConnection(connection.id)}
+            style={{
+              padding: "6px 12px",
+              background: "#522",
+              color: "#faa",
+              border: "1px solid #733",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: 12,
+              marginTop: 8,
+            }}
+          >
+            Delete Connection
+          </button>
+        </>
+      ) : !component ? (
         <div style={{ fontSize: 12, color: "#555" }}>
           {editingModule ? "Select a component to edit its properties" : "No module open"}
         </div>

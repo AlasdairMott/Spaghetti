@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Module, PanelComponent, ComponentKind, GridPosition, Tool } from "../models/types";
+import type { Module, PanelComponent, ComponentKind, GridPosition, Tool, ConnectionKind, MmPoint, Connection } from "../models/types";
 import type { AppStore } from "./index";
 
 const MAX_HISTORY = 100;
@@ -9,6 +9,7 @@ export interface EditorSlice {
   activeTool: Tool;
   selectedComponentId: string | null;
   selectedComponentIds: string[];
+  selectedConnectionId: string | null;
   _history: Module[];
   _future: Module[];
 
@@ -19,6 +20,7 @@ export interface EditorSlice {
   setActiveTool: (tool: Tool) => void;
   selectComponent: (id: string | null) => void;
   selectComponents: (ids: string[]) => void;
+  selectConnection: (id: string | null) => void;
 
   updateModuleName: (name: string) => void;
   updateModuleWidth: (widthHP: number) => void;
@@ -30,6 +32,10 @@ export interface EditorSlice {
   moveComponentsByDelta: (ids: string[], deltaX: number, deltaY: number) => void;
   duplicateComponent: (id: string) => string | null;
   pushSnapshot: () => void;
+
+  addConnection: (kind: ConnectionKind, from: MmPoint, to: MmPoint, startOffset?: number, endOffset?: number) => void;
+  updateConnection: (id: string, updates: Partial<Connection>) => void;
+  removeConnection: (id: string) => void;
 
   undo: () => void;
   redo: () => void;
@@ -49,18 +55,23 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
   activeTool: "select",
   selectedComponentId: null,
   selectedComponentIds: [],
+  selectedConnectionId: null,
   _history: [],
   _future: [],
 
-  openModuleForEditing: (module) =>
+  openModuleForEditing: (module) => {
+    const mod = JSON.parse(JSON.stringify(module));
+    if (!mod.connections) mod.connections = [];
     set({
-      editingModule: JSON.parse(JSON.stringify(module)),
+      editingModule: mod,
       selectedComponentId: null,
       selectedComponentIds: [],
+      selectedConnectionId: null,
       activeTool: "select",
       _history: [],
       _future: [],
-    }),
+    });
+  },
 
   createNewModule: (name, widthHP) =>
     set({
@@ -69,22 +80,26 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         name,
         widthHP,
         components: [],
+        connections: [],
       },
       selectedComponentId: null,
       selectedComponentIds: [],
+      selectedConnectionId: null,
       activeTool: "select",
       _history: [],
       _future: [],
     }),
 
   closeEditor: () =>
-    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], activeTool: "select", _history: [], _future: [] }),
+    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], selectedConnectionId: null, activeTool: "select", _history: [], _future: [] }),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
 
-  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [] }),
+  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedConnectionId: null }),
 
-  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null }),
+  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null, selectedConnectionId: null }),
+
+  selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: null, selectedComponentIds: [] }),
 
   updateModuleName: (name) =>
     set((state) => {
@@ -220,6 +235,56 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
     return newId;
   },
 
+  addConnection: (kind, from, to, startOffset, endOffset) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      const conn: Connection = {
+        id: crypto.randomUUID(),
+        kind,
+        from,
+        to,
+        startOffset,
+        endOffset,
+      };
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          connections: [...(state.editingModule.connections ?? []), conn],
+        },
+        selectedConnectionId: conn.id,
+        selectedComponentId: null,
+        selectedComponentIds: [],
+      };
+    }),
+
+  updateConnection: (id, updates) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          connections: (state.editingModule.connections ?? []).map((c) =>
+            c.id === id ? { ...c, ...updates } : c
+          ),
+        },
+      };
+    }),
+
+  removeConnection: (id) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          connections: (state.editingModule.connections ?? []).filter((c) => c.id !== id),
+        },
+        selectedConnectionId: state.selectedConnectionId === id ? null : state.selectedConnectionId,
+      };
+    }),
+
   pushSnapshot: () =>
     set((state) => pushHistory(state)),
 
@@ -235,6 +300,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         _future: future,
         selectedComponentId: null,
         selectedComponentIds: [],
+        selectedConnectionId: null,
       };
     }),
 
@@ -250,6 +316,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         _future: future,
         selectedComponentId: null,
         selectedComponentIds: [],
+        selectedConnectionId: null,
       };
     }),
 });

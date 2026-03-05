@@ -40,11 +40,30 @@ function ButtonIcon({ color }: { color: string }) {
   );
 }
 
+function LineIcon({ color }: { color: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <line x1="3" y1="17" x2="17" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ArrowIcon({ color }: { color: string }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <line x1="3" y1="17" x2="17" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <polyline points="11,3 17,3 17,9" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
 const tools: { id: Tool; label: string; shortcut: string; Icon: (props: { color: string }) => JSX.Element }[] = [
   { id: "select", label: "Select", shortcut: "V", Icon: SelectIcon },
   { id: "addJack", label: "Add Jack", shortcut: "J", Icon: JackIcon },
   { id: "addPot", label: "Add Pot", shortcut: "P", Icon: PotIcon },
   { id: "addButton", label: "Add Button", shortcut: "B", Icon: ButtonIcon },
+  { id: "addLine", label: "Line", shortcut: "L", Icon: LineIcon },
+  { id: "addArrow", label: "Arrow", shortcut: "A", Icon: ArrowIcon },
 ];
 
 export function ToolPalette() {

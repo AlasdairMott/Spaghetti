@@ -204,6 +204,7 @@ export function RackCanvas() {
                       y2={topLineY}
                       stroke={lineColor}
                       strokeWidth={0.2}
+                      strokeLinecap="round"
                     />
                     {/* Bottom line */}
                     <line
@@ -213,18 +214,22 @@ export function RackCanvas() {
                       y2={bottomLineY}
                       stroke={lineColor}
                       strokeWidth={0.2}
+                      strokeLinecap="round"
                     />
                     {/* Render components with labels */}
                     {mod.components.map((comp) => {
                       const pos = gridToMm(comp.position);
                       const buttonLeds = comp.buttonLedCount ?? 0;
-                      const hasButtonLeds = comp.kind === "button" && buttonLeds > 0;
+                      const hasButtonLeds =
+                        comp.kind === "button" && buttonLeds > 0;
                       const labelY =
                         comp.kind === "jack"
                           ? -8
                           : comp.kind === "pot"
                             ? -9
-                            : hasButtonLeds ? 8 : -5;
+                            : hasButtonLeds
+                              ? 8
+                              : -5;
                       return (
                         <g
                           key={comp.id}
@@ -236,7 +241,12 @@ export function RackCanvas() {
                             <PotShape stroke="#888" />
                           ) : hasButtonLeds ? (
                             <>
-                              {(buttonLeds === 1 ? [0] : buttonLeds === 2 ? [-2, 2] : [-2.5, 0, 2.5]).map((lx, i) => (
+                              {(buttonLeds === 1
+                                ? [0]
+                                : buttonLeds === 2
+                                  ? [-2, 2]
+                                  : [-2.5, 0, 2.5]
+                              ).map((lx, i) => (
                                 <g key={i} transform={`translate(${lx}, -4)`}>
                                   <LedShape />
                                 </g>
@@ -254,6 +264,61 @@ export function RackCanvas() {
                             </g>
                           )}
                           <ComponentLabel component={comp} y={labelY} />
+                        </g>
+                      );
+                    })}
+                    {/* Connections */}
+                    {(mod.connections ?? []).map((conn) => {
+                      const cdx = conn.to.x - conn.from.x;
+                      const cdy = conn.to.y - conn.from.y;
+                      const clen = Math.hypot(cdx, cdy);
+                      const cux = clen > 0 ? cdx / clen : 0;
+                      const cuy = clen > 0 ? cdy / clen : 0;
+                      const so = conn.startOffset ?? 0;
+                      const eo = conn.endOffset ?? 0;
+                      const cx1 = conn.from.x + cux * so;
+                      const cy1 = conn.from.y + cuy * so;
+                      const cx2 = conn.to.x - cux * eo;
+                      const cy2 = conn.to.y - cuy * eo;
+                      const isArr = conn.kind === "arrow";
+                      const aH = 1.5,
+                        aW = 0.75,
+                        aG = 0.8;
+                      const leX = isArr ? cx2 - cux * (aH + aG) : cx2;
+                      const leY = isArr ? cy2 - cuy * (aH + aG) : cy2;
+                      const bX = cx2 - cux * aH;
+                      const bY = cy2 - cuy * aH;
+                      const pX = -cuy * aW;
+                      const pY = cux * aW;
+                      return (
+                        <g key={conn.id}>
+                          <line
+                            x1={cx1}
+                            y1={cy1}
+                            x2={leX}
+                            y2={leY}
+                            stroke={lineColor}
+                            strokeWidth={0.2}
+                          />
+                          {isArr && (
+                            <polygon
+                              points={`${cx2},${cy2} ${bX + pX},${bY + pY} ${bX - pX},${bY - pY}`}
+                              fill={lineColor}
+                            />
+                          )}
+                          {conn.label && (
+                            <text
+                              x={(cx1 + leX) / 2 + (clen > 0 ? -cuy * 2 : 2)}
+                              y={(cy1 + leY) / 2 + (clen > 0 ? cux * 2 : 0)}
+                              textAnchor="middle"
+                              dominantBaseline="central"
+                              fill={textColor}
+                              fontSize={2.5}
+                              style={{ userSelect: "none" }}
+                            >
+                              {conn.label}
+                            </text>
+                          )}
                         </g>
                       );
                     })}

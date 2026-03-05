@@ -24,11 +24,31 @@ export interface PanelComponent {
   buttonLedCount?: 0 | 1 | 2 | 3;
 }
 
+export type ConnectionKind = "line" | "arrow";
+
+export interface MmPoint {
+  x: number;
+  y: number;
+}
+
+export interface Connection {
+  id: string;
+  kind: ConnectionKind;
+  from: MmPoint;
+  to: MmPoint;
+  label?: string;
+  /** Inset from the start point along the line direction (mm) */
+  startOffset?: number;
+  /** Inset from the end point along the line direction (mm) */
+  endOffset?: number;
+}
+
 export interface Module {
   id: string;
   name: string;
   widthHP: number;
   components: PanelComponent[];
+  connections: Connection[];
 }
 
 export interface RackPlacement {
@@ -46,6 +66,6 @@ export interface Rack {
   placements: RackPlacement[];
 }
 
-export type Tool = "select" | "addJack" | "addPot" | "addButton";
+export type Tool = "select" | "addJack" | "addPot" | "addButton" | "addLine" | "addArrow";
 export type AppMode = "designer" | "rack";
 export type RenderMode = "wireframe" | "rendered";
