@@ -20,6 +20,8 @@ export interface PanelComponent {
   labelColor?: LabelColor | null;
   /** Hex color when labelColor is "custom" */
   labelColorCustom?: string;
+  /** Number of LEDs above a button (only for kind="button") */
+  buttonLedCount?: 0 | 1 | 2 | 3;
 }
 
 export interface Module {

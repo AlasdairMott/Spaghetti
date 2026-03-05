@@ -92,6 +92,27 @@ export function PropertyEditor() {
             </div>
           )}
 
+          {/* LED count (buttons only) */}
+          {component.kind === "button" && (
+            <div>
+              <span style={labelStyle}>LEDs Above</span>
+              <select
+                style={inputStyle}
+                value={component.buttonLedCount ?? 0}
+                onChange={(e) =>
+                  updateComponent(component.id, {
+                    buttonLedCount: parseInt(e.target.value) as 0 | 1 | 2 | 3,
+                  })
+                }
+              >
+                <option value={0}>None</option>
+                <option value={1}>1 LED</option>
+                <option value={2}>2 LEDs</option>
+                <option value={3}>3 LEDs</option>
+              </select>
+            </div>
+          )}
+
           {/* Label color dot */}
           <div>
             <span style={labelStyle}>Label Color</span>

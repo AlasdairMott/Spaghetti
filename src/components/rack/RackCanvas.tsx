@@ -217,12 +217,14 @@ export function RackCanvas() {
                     {/* Render components with labels */}
                     {mod.components.map((comp) => {
                       const pos = gridToMm(comp.position);
+                      const buttonLeds = comp.buttonLedCount ?? 0;
+                      const hasButtonLeds = comp.kind === "button" && buttonLeds > 0;
                       const labelY =
                         comp.kind === "jack"
                           ? -8
                           : comp.kind === "pot"
                             ? -9
-                            : -5;
+                            : hasButtonLeds ? 8 : -5;
                       return (
                         <g
                           key={comp.id}
@@ -232,6 +234,17 @@ export function RackCanvas() {
                             <JackShape stroke="#888" />
                           ) : comp.kind === "pot" ? (
                             <PotShape stroke="#888" />
+                          ) : hasButtonLeds ? (
+                            <>
+                              {(buttonLeds === 1 ? [0] : buttonLeds === 2 ? [-2, 2] : [-2.5, 0, 2.5]).map((lx, i) => (
+                                <g key={i} transform={`translate(${lx}, -4)`}>
+                                  <LedShape />
+                                </g>
+                              ))}
+                              <g transform="translate(0, 2)">
+                                <ButtonShape stroke="#888" />
+                              </g>
+                            </>
                           ) : (
                             <ButtonShape stroke="#888" />
                           )}

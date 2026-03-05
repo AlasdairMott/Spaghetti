@@ -1,6 +1,7 @@
 import type { PanelComponent } from "../../models/types";
 import { gridToMm } from "../../utils/grid";
 import { ButtonShape } from "./shapes/ButtonShape";
+import { LedShape } from "./shapes/LedShape";
 import { ComponentLabel } from "./ComponentLabel";
 
 interface Props {
@@ -12,6 +13,16 @@ interface Props {
   onDoubleClick?: () => void;
 }
 
+/** Compute LED X positions for a given count, spread horizontally */
+function ledXPositions(count: number): number[] {
+  switch (count) {
+    case 1: return [0];
+    case 2: return [-2, 2];
+    case 3: return [-2.5, 0, 2.5];
+    default: return [];
+  }
+}
+
 export function ButtonSymbol({
   component,
   isSelected,
@@ -21,6 +32,13 @@ export function ButtonSymbol({
   onDoubleClick,
 }: Props) {
   const { x, y } = gridToMm(component.position);
+  const ledCount = component.buttonLedCount ?? 0;
+  const hasLeds = ledCount > 0;
+
+  // When LEDs present: shift button down, LEDs up, label below button
+  const buttonOffsetY = hasLeds ? 2 : 0;
+  const ledOffsetY = hasLeds ? -4 : 0;
+  const labelY = hasLeds ? 8 : -8;
 
   return (
     <g
@@ -31,8 +49,15 @@ export function ButtonSymbol({
       onDoubleClick={onDoubleClick}
       style={{ cursor: "pointer" }}
     >
-      <ButtonShape stroke={isSelected ? "#4af" : "#aaa"} />
-      <ComponentLabel component={component} y={-8} />
+      {hasLeds && ledXPositions(ledCount).map((lx, i) => (
+        <g key={i} transform={`translate(${lx}, ${ledOffsetY})`}>
+          <LedShape />
+        </g>
+      ))}
+      <g transform={`translate(0, ${buttonOffsetY})`}>
+        <ButtonShape stroke={isSelected ? "#4af" : "#aaa"} />
+      </g>
+      <ComponentLabel component={component} y={labelY} />
     </g>
   );
 }
