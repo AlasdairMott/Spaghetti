@@ -67,27 +67,30 @@ export function RackView() {
     return saved ? parseInt(saved, 10) || 500 : 500;
   });
   const resizing = useRef(false);
-  const handleResizeStart = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    resizing.current = true;
-    const startX = e.clientX;
-    const startWidth = codeWidth;
-    let lastWidth = startWidth;
-    const onMove = (ev: PointerEvent) => {
-      if (!resizing.current) return;
-      const delta = startX - ev.clientX;
-      lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
-      setCodeWidth(lastWidth);
-    };
-    const onUp = () => {
-      resizing.current = false;
-      localStorage.setItem("lw-code-width", String(lastWidth));
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [codeWidth]);
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      resizing.current = true;
+      const startX = e.clientX;
+      const startWidth = codeWidth;
+      let lastWidth = startWidth;
+      const onMove = (ev: PointerEvent) => {
+        if (!resizing.current) return;
+        const delta = startX - ev.clientX;
+        lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
+        setCodeWidth(lastWidth);
+      };
+      const onUp = () => {
+        resizing.current = false;
+        localStorage.setItem("lw-code-width", String(lastWidth));
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [codeWidth],
+  );
 
   // Hot-repatch wires while audio is running
   const wires = rack.wires;
@@ -170,7 +173,11 @@ export function RackView() {
           }`}
           title="Toggle Code Editor"
         >
-          <Code size={16} color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"} strokeWidth={1.5} />
+          <Code
+            size={16}
+            color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"}
+            strokeWidth={1.5}
+          />
         </button>
         <ScopePanel />
       </div>
@@ -181,7 +188,10 @@ export function RackView() {
             onPointerDown={handleResizeStart}
             className="w-1 cursor-col-resize bg-surface-3 shrink-0"
           />
-          <div className="shrink-0 bg-surface-1 flex flex-col" style={{ width: codeWidth }}>
+          <div
+            className="shrink-0 bg-surface-1 flex flex-col"
+            style={{ width: codeWidth }}
+          >
             <RackCodeEditor />
           </div>
         </>
@@ -245,7 +255,7 @@ export function RackView() {
           <SidebarButton onClick={() => setShowBom(true)}>
             <TableProperties size={14} /> Bill of Materials
           </SidebarButton>
-          <SidebarButton
+          {/* <SidebarButton
             onClick={() => {
               const state = useAppStore.getState();
               const data = JSON.stringify(
@@ -300,7 +310,7 @@ export function RackView() {
             }}
           >
             <Upload size={14} /> Import Project
-          </SidebarButton>
+          </SidebarButton> */}
         </div>
 
         {/* Selected module properties OR Module Library */}
@@ -406,7 +416,11 @@ export function RackView() {
                 <PackagePlus size={12} /> Import
               </SidebarButton>
             </div>
-            <TagFilter modules={modules} activeTag={libraryTag} onTagChange={setLibraryTag} />
+            <TagFilter
+              modules={modules}
+              activeTag={libraryTag}
+              onTagChange={setLibraryTag}
+            />
             {filteredModules.length === 0 ? (
               <div className="text-xs text-text-faint">
                 {modules.length === 0

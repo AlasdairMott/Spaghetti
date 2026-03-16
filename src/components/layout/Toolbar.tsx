@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore } from "../../store";
-import type { AppMode } from "../../models/types";
-import { Sun, Moon, Play, Square } from "lucide-react";
+import type { AppMode, Module } from "../../models/types";
+import { Sun, Moon, Play, Square, Menu } from "lucide-react";
 import { toggleAudio } from "../../audio/singleton";
 
 export function Toolbar() {
@@ -15,7 +15,10 @@ export function Toolbar() {
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
   const audioRunning = useAppStore((s) => s.audioRunning);
+  const resetProject = useAppStore((s) => s.resetProject);
   const [saved, setSaved] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleToggleAudio = useCallback(() => { toggleAudio(); }, []);
 
@@ -32,6 +35,18 @@ export function Toolbar() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const handleSave = () => {
     if (editingModule) {
@@ -57,14 +72,94 @@ export function Toolbar() {
     e.target.value = "";
   };
 
+  const handleExport = () => {
+    setMenuOpen(false);
+    const state = useAppStore.getState();
+    const data = JSON.stringify(
+      { modules: state.modules, rack: state.rack, canvas: state.canvas },
+      null,
+      2,
+    );
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "lw-project.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = () => {
+    setMenuOpen(false);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data.modules || !Array.isArray(data.modules)) {
+          alert("Invalid project file.");
+          return;
+        }
+        if (!confirm("This will replace your current project. Continue?")) return;
+        if (audioRunning) toggleAudio();
+        useAppStore.setState({
+          modules: data.modules as Module[],
+          ...(data.rack ? { rack: data.rack } : {}),
+          ...(data.canvas ? { canvas: data.canvas } : {}),
+        });
+      } catch {
+        alert("Failed to read project file.");
+      }
+    };
+    input.click();
+  };
+
+  const handleNewProject = () => {
+    setMenuOpen(false);
+    if (!confirm("Start a new project? This will replace all modules, rack, and canvas with the built-in defaults.")) return;
+    if (audioRunning) toggleAudio();
+    resetProject();
+  };
+
   const modes: { id: AppMode; label: string }[] = [
     { id: "designer", label: "Module Designer" },
     { id: "canvas", label: "Canvas" },
     { id: "rack", label: "Rack View" },
   ];
 
+  const menuItemCls = "w-full text-left px-3 py-1.5 text-[13px] bg-transparent border-none cursor-pointer text-text hover:bg-surface-3";
+
   return (
     <div className="flex items-center gap-3 px-4 py-1.5 bg-surface-1 border-b border-border">
+      {/* Hamburger menu */}
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="p-1.5 bg-surface-3 border border-border-light rounded cursor-pointer text-text-muted"
+          title="Menu"
+        >
+          <Menu size={14} />
+        </button>
+        {menuOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-surface-2 border border-border-light rounded-lg shadow-lg overflow-hidden z-50 min-w-40">
+            <button onClick={handleNewProject} className={menuItemCls}>
+              New Project
+            </button>
+            <div className="h-px bg-border mx-2" />
+            <button onClick={handleImport} className={menuItemCls}>
+              Import Project...
+            </button>
+            <button onClick={handleExport} className={menuItemCls}>
+              Export Project
+            </button>
+          </div>
+        )}
+      </div>
+
       <button
         onClick={handleToggleAudio}
         className={`p-1.5 rounded cursor-pointer border ${
