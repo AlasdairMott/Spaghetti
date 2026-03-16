@@ -1,0 +1,491 @@
+{
+  "id": "26ce8991-1846-465b-acbf-565dd369feea",
+  "name": "Phase3",
+  "widthHP": 15,
+  "components": [
+    {
+      "id": "8908dff6-421e-4ae7-8d5b-f382bac2fa1c",
+      "kind": "pot",
+      "position": {
+        "gridX": 1,
+        "gridY": 16
+      },
+      "label": "Color",
+      "rotation": 0,
+      "description": "Noise Color"
+    },
+    {
+      "id": "721f52a7-30d5-429c-b7ae-d499885e903b",
+      "kind": "pot",
+      "position": {
+        "gridX": 1,
+        "gridY": 14
+      },
+      "label": "Noise",
+      "rotation": 0,
+      "description": "Noise Amount"
+    },
+    {
+      "id": "95488941-6967-468d-98e8-349f8de6d130",
+      "kind": "pot",
+      "position": {
+        "gridX": 1,
+        "gridY": 12
+      },
+      "label": "",
+      "rotation": 0,
+      "ref": "FineOffset"
+    },
+    {
+      "id": "03a16373-090d-4e53-a32e-843ea41ec56d",
+      "kind": "pot",
+      "position": {
+        "gridX": 1,
+        "gridY": 10
+      },
+      "label": "",
+      "rotation": 0,
+      "ref": "FineAttenuverter"
+    },
+    {
+      "id": "8abae0ff-82ba-4795-a8cf-65c95d9cb807",
+      "kind": "jack",
+      "position": {
+        "gridX": 1,
+        "gridY": 8
+      },
+      "label": "Fine",
+      "rotation": 0,
+      "labelColor": "yellow",
+      "jackDirection": "input",
+      "voltageMin": 5,
+      "voltageMax": 5
+    },
+    {
+      "id": "34cd12ec-7f3e-4171-9940-bb6d5ed550a1",
+      "kind": "jack",
+      "position": {
+        "gridX": 1,
+        "gridY": 4
+      },
+      "label": "R",
+      "rotation": 0,
+      "labelColor": "yellow",
+      "jackDirection": "input",
+      "ref": "RightIn"
+    },
+    {
+      "id": "716bf0fa-7583-4a0e-b25b-2b0c66bdc006",
+      "kind": "jack",
+      "position": {
+        "gridX": 1,
+        "gridY": 2
+      },
+      "label": "L",
+      "rotation": 0,
+      "labelColor": "yellow",
+      "hasLed": true,
+      "jackDirection": "input",
+      "ref": "LeftIn"
+    },
+    {
+      "id": "be81ae2b-e8a4-4b16-9458-bea39ca19748",
+      "kind": "jack",
+      "position": {
+        "gridX": 3,
+        "gridY": 2
+      },
+      "label": "A",
+      "rotation": 0,
+      "labelColor": "blue",
+      "jackDirection": "input",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Attack"
+    },
+    {
+      "id": "fcd9078a-9fc2-4d20-a140-37e93049c261",
+      "kind": "jack",
+      "position": {
+        "gridX": 3,
+        "gridY": 4
+      },
+      "label": "D",
+      "rotation": 0,
+      "labelColor": "blue",
+      "jackDirection": "input",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Decay"
+    },
+    {
+      "id": "f99b185d-6b66-40b4-b16d-264e7658d979",
+      "kind": "jack",
+      "position": {
+        "gridX": 3,
+        "gridY": 6
+      },
+      "label": "DCW",
+      "rotation": 0,
+      "labelColor": "blue",
+      "jackDirection": "input",
+      "voltageMin": 0,
+      "voltageMax": 5
+    },
+    {
+      "id": "24295872-cb4d-4921-aec7-d8f8d8711e61",
+      "kind": "jack",
+      "position": {
+        "gridX": 2,
+        "gridY": 5
+      },
+      "label": "VO",
+      "rotation": 0,
+      "labelColor": "blue",
+      "jackDirection": "input",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Volts per octave input"
+    },
+    {
+      "id": "44beb9c1-907d-472d-9fa6-6b884977ea64",
+      "kind": "jack",
+      "position": {
+        "gridX": 2,
+        "gridY": 3
+      },
+      "label": "Trigger",
+      "rotation": 0,
+      "labelColor": "blue",
+      "hasLed": true,
+      "jackDirection": "input",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Trigger the internal envelope"
+    },
+    {
+      "id": "288dce71-1331-436c-9ffa-c1e8b62179b2",
+      "kind": "pot",
+      "position": {
+        "gridX": 3,
+        "gridY": 14
+      },
+      "label": "D",
+      "rotation": 0,
+      "description": "Decay Offset"
+    },
+    {
+      "id": "fae21695-f7f3-4d79-80ce-a5e87a57ffb7",
+      "kind": "pot",
+      "position": {
+        "gridX": 3,
+        "gridY": 12
+      },
+      "label": "A",
+      "rotation": 0,
+      "description": "Attack Offset"
+    },
+    {
+      "id": "427be83e-8f60-401d-9d19-73072db870f8",
+      "kind": "pot",
+      "position": {
+        "gridX": 3,
+        "gridY": 10
+      },
+      "label": "",
+      "rotation": 0,
+      "ref": "DCWOffset"
+    },
+    {
+      "id": "d3a5bcd3-bf6e-4be5-afd7-1df39264de74",
+      "kind": "pot",
+      "position": {
+        "gridX": 3,
+        "gridY": 8
+      },
+      "label": "",
+      "rotation": 0,
+      "ref": "DCWAttenuverter"
+    },
+    {
+      "id": "2fc1ffba-56b6-40ea-aaca-f0ee2c9678af",
+      "kind": "pot",
+      "position": {
+        "gridX": 5,
+        "gridY": 14
+      },
+      "label": "Second",
+      "rotation": 0,
+      "description": "Second Segment"
+    },
+    {
+      "id": "9caf3104-6737-472c-a763-5c6966e2692b",
+      "kind": "pot",
+      "position": {
+        "gridX": 5,
+        "gridY": 12
+      },
+      "label": "First",
+      "rotation": 0,
+      "description": "First Segment"
+    },
+    {
+      "id": "e74c8202-5ab3-44d7-bf27-8abdfb4d2c30",
+      "kind": "pot",
+      "position": {
+        "gridX": 5,
+        "gridY": 10
+      },
+      "label": "Slide",
+      "rotation": 0,
+      "description": "Slew Amount"
+    },
+    {
+      "id": "f68bea5e-ba68-489c-add7-08cdea6cff8c",
+      "kind": "pot",
+      "position": {
+        "gridX": 5,
+        "gridY": 8
+      },
+      "label": "Env Amount",
+      "rotation": 0
+    },
+    {
+      "id": "157f0747-e767-488b-8c4c-c54c78507138",
+      "kind": "pot",
+      "position": {
+        "gridX": 1,
+        "gridY": 6
+      },
+      "label": "",
+      "rotation": 0,
+      "ref": "VOOffset",
+      "description": "Offsets the pitch of the oscillator"
+    },
+    {
+      "id": "c62b592d-a8fd-42ec-95da-bd2e5307dbda",
+      "kind": "jack",
+      "position": {
+        "gridX": 4,
+        "gridY": 3
+      },
+      "label": "Env",
+      "rotation": 0,
+      "labelColor": "red",
+      "jackDirection": "output",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Envelope Output"
+    },
+    {
+      "id": "e9954b7b-e2a0-4cee-9c8a-6dd18999d767",
+      "kind": "jack",
+      "position": {
+        "gridX": 4,
+        "gridY": 5
+      },
+      "label": "-Env",
+      "rotation": 0,
+      "labelColor": "red",
+      "jackDirection": "output",
+      "voltageMin": -5,
+      "voltageMax": 0,
+      "description": "Inverted Envelope Output"
+    },
+    {
+      "id": "c8d12c64-6945-4ee5-81cb-738463a5d0f7",
+      "kind": "jack",
+      "position": {
+        "gridX": 5,
+        "gridY": 2
+      },
+      "label": "L",
+      "rotation": 0,
+      "labelColor": "green",
+      "jackDirection": "output",
+      "description": "Lef Output"
+    },
+    {
+      "id": "e604298a-deb6-417e-8a3e-bd5ce7965460",
+      "kind": "jack",
+      "position": {
+        "gridX": 5,
+        "gridY": 4
+      },
+      "label": "R",
+      "rotation": 0,
+      "labelColor": "green",
+      "jackDirection": "output",
+      "description": "Right Output"
+    },
+    {
+      "id": "bcbb6338-10d6-4d34-ad20-9f667c38b869",
+      "kind": "jack",
+      "position": {
+        "gridX": 5,
+        "gridY": 6
+      },
+      "label": "EOR",
+      "rotation": 0,
+      "labelColor": "red",
+      "jackDirection": "output",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Triggers at the end of the rise of the envelope"
+    },
+    {
+      "id": "0dca1000-cba9-489c-b29e-a92424c00182",
+      "kind": "jack",
+      "position": {
+        "gridX": 4,
+        "gridY": 7
+      },
+      "label": "EOF",
+      "rotation": 0,
+      "labelColor": "red",
+      "hasLed": true,
+      "jackDirection": "output",
+      "voltageMin": 0,
+      "voltageMax": 5,
+      "description": "Triggers at the end of the envelope"
+    },
+    {
+      "id": "89af3aea-00cb-4b21-a3cf-cd5c6f793df3",
+      "kind": "jack",
+      "position": {
+        "gridX": 2,
+        "gridY": 7
+      },
+      "label": "Ring",
+      "rotation": 0,
+      "labelColor": "yellow",
+      "hasLed": true,
+      "jackDirection": "input",
+      "voltageMin": 5,
+      "voltageMax": 5,
+      "description": "Ring modulates the internal oscillator and incoming signals"
+    },
+    {
+      "id": "7edd8c54-95c3-4c9a-907f-0909218c19ba",
+      "kind": "button",
+      "position": {
+        "gridX": 3,
+        "gridY": 16
+      },
+      "label": "Mode",
+      "rotation": 0,
+      "buttonLedCount": 3,
+      "description": "Mode 1 is drone mode (envelope does not affect VCA)\nMode 2 is mono mode (envelope controls VCA)\nMode 3 is poly mode (4 voice)"
+    },
+    {
+      "id": "d715d8c0-e4f5-42ae-9c11-7d51b26351b9",
+      "kind": "button",
+      "position": {
+        "gridX": 4,
+        "gridY": 16
+      },
+      "label": "Chorus",
+      "rotation": 0,
+      "buttonLedCount": 1,
+      "description": "Toggle Chorus on/off"
+    },
+    {
+      "id": "20d57718-9297-476f-bbc9-212897877d3b",
+      "kind": "button",
+      "position": {
+        "gridX": 5,
+        "gridY": 16
+      },
+      "label": "Shift",
+      "rotation": 0,
+      "buttonLedCount": 1
+    }
+  ],
+  "connections": [
+    {
+      "id": "fbafc88c-1ad3-454a-b56f-af1b32b457fd",
+      "kind": "line",
+      "from": {
+        "x": 38.099999999999994,
+        "y": 97
+      },
+      "to": {
+        "x": 38.099999999999994,
+        "y": 78
+      },
+      "startOffset": 7.5,
+      "endOffset": 7.5
+    },
+    {
+      "id": "eca63e64-28b4-4f11-960c-ab8659565906",
+      "kind": "arrow",
+      "from": {
+        "x": 38.099999999999994,
+        "y": 78
+      },
+      "to": {
+        "x": 38.099999999999994,
+        "y": 59
+      },
+      "startOffset": 7.5,
+      "endOffset": 4.5
+    },
+    {
+      "id": "2f239caf-2552-4113-9a29-22e39010853a",
+      "kind": "arrow",
+      "from": {
+        "x": 12.7,
+        "y": 97
+      },
+      "to": {
+        "x": 12.7,
+        "y": 78
+      },
+      "startOffset": 7.5,
+      "endOffset": 4.5
+    },
+    {
+      "id": "199b4b34-b997-4da3-855f-54e4f0c18f34",
+      "kind": "line",
+      "from": {
+        "x": 12.7,
+        "y": 116
+      },
+      "to": {
+        "x": 12.7,
+        "y": 97
+      },
+      "startOffset": 7.5,
+      "endOffset": 7.5
+    },
+    {
+      "id": "1cc8bfcc-9860-4fa0-a0bc-3e7fb476b876",
+      "kind": "arrow",
+      "from": {
+        "x": 12.7,
+        "y": 97
+      },
+      "to": {
+        "x": 12.7,
+        "y": 97
+      },
+      "startOffset": 7.5,
+      "endOffset": 7.5
+    },
+    {
+      "id": "8e054aec-d496-42b4-b50f-6b560ea80134",
+      "kind": "arrow",
+      "from": {
+        "x": 12.7,
+        "y": 97
+      },
+      "to": {
+        "x": 12.7,
+        "y": 97
+      },
+      "startOffset": 7.5,
+      "endOffset": 0
+    }
+  ],
+  "code": "function init(sampleRate) {\n  const chorusBufLen = Math.ceil(sampleRate * 0.03);\n  const voices = [];\n  for (let v = 0; v < 4; v++) {\n    voices.push({\n      phase: 0,\n      freq: 0,\n      smoothFreq: 0,\n      envPhase: 0,\n      triggered: false,\n      eorTriggered: false,\n      currentEnv: 0,\n      active: false\n    });\n  }\n  return {\n    sampleRate: sampleRate,\n    phase: 0,\n    envPhase: 0,\n    currentEnv: 0,\n    triggered: false,\n    eorTriggered: false,\n    lastTrigger: 0,\n    noiseLP: 0,\n    smoothFreq: 0,\n    phase7th: 0,\n    voices: voices,\n    nextVoice: 0,\n    mode: 0,\n    lastModeBtn: false,\n    chorusBufL: new Float32Array(chorusBufLen),\n    chorusBufR: new Float32Array(chorusBufLen),\n    chorusBufLen: chorusBufLen,\n    chorusWritePos: 0,\n    chorusLfoPhase: 0\n  };\n}\n\nfunction czSawPhase(p, a) {\n  const bp = 0.5 - a * 0.48;\n  return p < bp ? (p / bp) * 0.5 : 0.5 + ((p - bp) / (1.0 - bp)) * 0.5;\n}\n\nfunction czSquarePhase(p, a) {\n  const linger = a * 0.98;\n  const trans = 1.0 - linger;\n  if (p < 0.5) {\n    const hp = p * 2.0;\n    return hp < linger ? 0.0 : ((hp - linger) / trans) * 0.5;\n  } else {\n    const hp = (p - 0.5) * 2.0;\n    return hp < linger ? 0.5 : 0.5 + ((hp - linger) / trans) * 0.5;\n  }\n}\n\nfunction resRamp(p, a) {\n  const resonance = 1.0 + a * 15.0;\n  const resPhase = (p * resonance) % 1.0;\n  const ampEnvelope = 1.0 - p;\n  return Math.sin(2.0 * Math.PI * resPhase) * ampEnvelope;\n}\n\nfunction resTri(p, a) {\n  const resonance = 1.0 + a * 15.0;\n  const resPhase = (p * resonance) % 1.0;\n  const ampEnvelope = p < 0.5 ? p * 2.0 : 2.0 - p * 2.0;\n  return Math.sin(2.0 * Math.PI * resPhase) * ampEnvelope;\n}\n\nfunction generateSample(p, type, amount) {\n  let dp;\n  switch (type) {\n    case 0: dp = czSawPhase(p, amount); break;\n    case 1: dp = czSquarePhase(p, amount); break;\n    case 2:\n      const pw = 0.05 + 0.95 * (1.0 - amount);\n      dp = p < (1.0 - pw) ? 0.0 : (p - (1.0 - pw)) / pw;\n      break;\n    case 3:\n      const bp3 = 0.5 - amount * 0.48;\n      dp = p < bp3 ? p / bp3 : 1.0 + (p - bp3) / (1.0 - bp3);\n      break;\n    case 4:\n      const bp4 = 1.0 - amount * 0.48;\n      if (p < 0.5) return Math.sin(2 * Math.PI * p + Math.PI/2);\n      if (p < bp4) return Math.sin(2 * Math.PI * (0.5 + ((p-0.5)/(bp4-0.5))*0.5) + Math.PI/2);\n      return 1.0;\n    case 5: return resRamp(p, amount);\n    case 6: return resTri(p, amount);\n    default: return Math.sin(2.0 * Math.PI * p + Math.PI/2);\n  }\n  return Math.sin(2.0 * Math.PI * dp + Math.PI / 2.0);\n}\n\n// 2x oversampled waveform: evaluate at midpoint and endpoint, average\nfunction generateOsc2x(phase, inc, type1, type2, amount) {\n  let pMid = phase + inc * 0.5;\n  if (pMid >= 1.0) pMid -= 1.0;\n  let pEnd = phase + inc;\n  if (pEnd >= 1.0) pEnd -= 1.0;\n  const s1 = (generateSample(pMid, type1, amount) + generateSample(pEnd, type1, amount)) * 0.5;\n  const s2 = (generateSample(pMid, type2, amount) + generateSample(pEnd, type2, amount)) * 0.5;\n  return s1 + s2;\n}\n\nfunction readDelay(buf, writePos, delaySamples, bufLen) {\n  const readPos = writePos - delaySamples;\n  const idx = readPos < 0 ? readPos + bufLen : readPos;\n  const i0 = Math.floor(idx);\n  const frac = idx - i0;\n  const i1 = (i0 + 1) % bufLen;\n  return buf[i0] * (1 - frac) + buf[i1] * frac;\n}\n\nfunction process(state, inputs, outputs, params, buttons) {\n  const blockSize = 128;\n  const { L, R, Env, EOR, EOF } = outputs;\n  const negEnv = outputs[\"-Env\"];\n\n  const triggerIn = inputs[\"Trigger\"] || new Float32Array(blockSize);\n  const voIn = inputs[\"VO\"] || new Float32Array(blockSize);\n  const dcwIn = inputs[\"DCW\"] || new Float32Array(blockSize);\n\n  const firstFunc = Math.floor((params.First ?? 0) * 7);\n  const secondFunc = Math.floor((params.Second ?? 0) * 7);\n  const dcwAtt = ((params.DCWAttenuverter ?? 0.5) - 0.5) * 2.0;\n  const dcwOffset = params.DCWOffset ?? 0;\n  // Attenuverter: 0 = -1, 0.5 = 0, 1 = +1\n  const envAmt = ((params[\"Env Amount\"] ?? 0.5) - 0.5) * 2.0;\n  const voOffset = (params.VOOffset ?? 0) * 5;\n  const fineIn = inputs.Fine || new Float32Array(blockSize);\n  const ringIn = inputs[\"Ring\"] || new Float32Array(blockSize);\n  const leftInSig = inputs[\"LeftIn\"] || new Float32Array(blockSize);\n  const rightInSig = inputs[\"RightIn\"] || new Float32Array(blockSize);\n  const fineAtt = ((params.FineAttenuverter ?? 0.5)- 0.5)* 2.0;\n  const fineOffset = params.FineOffset ?? 0;\n  const attackParam = params.A ?? 0.1;\n  const decayParam = params.D ?? 0.5;\n  const noiseAmt = params.Noise ?? 0;\n  const noiseColor = params.Color ?? 0.5;\n\n  // Slide: 0 = instant, 1 = ~2s glide time\n  // Use exponential curve so most of the knob range is usable\n  const slideParam = params.Slide ?? 0;\n  const slideTime = slideParam * slideParam * 2.0; // 0-2 seconds, quadratic taper\n  const slideCoeff = slideTime < 0.001 ? 1.0 : 1.0 - Math.exp(-1.0 / (slideTime * state.sampleRate));\n\n  // Mode button: detect rising edge to cycle 0->1->2->0\n  const modeBtn = buttons.Mode || false;\n  if (modeBtn && !state.lastModeBtn) {\n    state.mode = (state.mode + 1) % 3;\n  }\n  state.lastModeBtn = modeBtn;\n\n  const chorusOn = buttons.Chorus || false;\n  const chorusLfoRate = 0.5 / state.sampleRate;\n  const chorusMinDelay = state.sampleRate * 0.005;\n  const chorusMaxDelay = state.sampleRate * 0.015;\n\n  const aSamples = Math.max(1, Math.pow(attackParam, 2) * 2.0 * state.sampleRate);\n  const dSamples = Math.max(1, Math.pow(decayParam, 2) * 5.0 * state.sampleRate);\n\n  for (let i = 0; i < blockSize; i++) {\n    const trig = triggerIn[i] > 2.5;\n    const wasTrig = state.lastTrigger > 2.5;\n    state.lastTrigger = triggerIn[i];\n\n    const fineCV = fineIn ? fineIn[i] / 5.0 : 0;  // normalize ±5V to ±1\n    const targetFreq = 65.406 * Math.pow(2, (voIn[i] || 0) + voOffset + fineOffset + (fineCV * fineAtt));\n\n    let outputL = 0, outputR = 0;\n    let envSum = 0;\n    let eor = 0, eof = 0;\n\n    const ringVal = ringIn[i] / 5.0;\n\n    if (state.mode === 2) {\n      // --- POLY MODE ---\n      if (trig && !wasTrig) {\n        const v = state.voices[state.nextVoice];\n        v.freq = targetFreq;\n        if (v.smoothFreq === 0) v.smoothFreq = targetFreq;\n        v.triggered = true;\n        v.envPhase = 0;\n        v.eorTriggered = false;\n        v.phase = 0;\n        state.nextVoice = (state.nextVoice + 1) % 4;\n      }\n\n      for (let vi = 0; vi < 4; vi++) {\n        const v = state.voices[vi];\n\n        let linEnv = 0;\n        if (v.triggered) {\n          if (v.envPhase < aSamples) {\n            linEnv = v.envPhase / aSamples;\n          } else if (v.envPhase < aSamples + dSamples) {\n            if (!v.eorTriggered) { eor = 5; v.eorTriggered = true; }\n            linEnv = 1.0 - (v.envPhase - aSamples) / dSamples;\n          } else {\n            v.triggered = false;\n            eof = 5;\n          }\n          v.envPhase++;\n        }\n        const vEnv = linEnv * linEnv;\n        v.currentEnv = vEnv;\n        envSum += vEnv;\n\n        v.smoothFreq += slideCoeff * (v.freq - v.smoothFreq);\n        const vInc = v.smoothFreq / state.sampleRate;\n\n        const dcwCV = (dcwIn[i] / 5) * dcwAtt;\n        const dcwMod = Math.max(0, Math.min(1, dcwOffset + (vEnv * envAmt) + dcwCV));\n        const mix = generateOsc2x(v.phase, vInc, firstFunc, secondFunc, dcwMod);\n\n        v.phase += vInc;\n        if (v.phase >= 1.0) v.phase -= 1.0;\n\n        // Ping-pong: even voices left, odd voices right\n        const voiceOut = (mix * 0.4) * vEnv;\n        if (vi % 2 === 0) {\n          outputL += voiceOut;\n        } else {\n          outputR += voiceOut;\n        }\n      }\n      outputL *= 0.35;\n      outputR *= 0.35;\n\n      const white = Math.random() * 2 - 1;\n      const lpAlpha = Math.pow(1.0 - noiseColor, 3);\n      state.noiseLP = state.noiseLP + lpAlpha * (white - state.noiseLP);\n      const noiseSig = state.noiseLP * (1.0 + noiseColor * 2.0) * noiseAmt * 0.5;\n      outputL += noiseSig;\n      outputR += noiseSig;\n\n    } else {\n      // --- DRONE / MONO MODE ---\n      if (trig && !wasTrig) {\n        state.triggered = true;\n        state.envPhase = 0;\n        state.eorTriggered = false;\n      }\n\n      let linEnv = 0;\n      if (state.triggered) {\n        if (state.envPhase < aSamples) {\n          linEnv = state.envPhase / aSamples;\n        } else if (state.envPhase < aSamples + dSamples) {\n          if (!state.eorTriggered) { eor = 5; state.eorTriggered = true; }\n          linEnv = 1.0 - (state.envPhase - aSamples) / dSamples;\n        } else {\n          state.triggered = false;\n          eof = 5;\n        }\n        state.envPhase++;\n      }\n      const snappyEnv = linEnv * linEnv;\n      state.currentEnv = snappyEnv;\n      envSum = snappyEnv;\n\n      // Portamento\n      if (state.smoothFreq === 0) state.smoothFreq = targetFreq;\n      state.smoothFreq += slideCoeff * (targetFreq - state.smoothFreq);\n      const inc = state.smoothFreq / state.sampleRate;\n\n      const dcwCV = (dcwIn[i] / 5) * dcwAtt;\n      const dcwMod = Math.max(0, Math.min(1, dcwOffset + (snappyEnv * envAmt) + dcwCV));\n\n      // Left: base frequency\n      const mixL = generateOsc2x(state.phase, inc, firstFunc, secondFunc, dcwMod);\n      state.phase += inc;\n      if (state.phase >= 1.0) state.phase -= 1.0;\n\n      // Right: a 7th higher (7 semitones up)\n      const inc7th = inc * 1.4983070768766815; // 2^(7/12)\n      const mixR = generateOsc2x(state.phase7th, inc7th, firstFunc, secondFunc, dcwMod);\n      state.phase7th += inc7th;\n      if (state.phase7th >= 1.0) state.phase7th -= 1.0;\n\n      const white = Math.random() * 2 - 1;\n      const lpAlpha = Math.pow(1.0 - noiseColor, 3);\n      state.noiseLP = state.noiseLP + lpAlpha * (white - state.noiseLP);\n      const finalNoise = state.noiseLP * (1.0 + noiseColor * 2.0);\n\n      const rawL = mixL * 0.4 + (finalNoise * noiseAmt);\n      const rawR = mixR * 0.4 + (finalNoise * noiseAmt);\n\n      if (state.mode === 1) {\n        outputL = rawL * snappyEnv;\n        outputR = rawR * snappyEnv;\n      } else {\n        outputL = rawL * 0.5;\n        outputR = rawR * 0.5;\n      }\n    }\n\n    // Ring modulation of external inputs\n    outputL += leftInSig[i] * ringVal;\n    outputR += rightInSig[i] * ringVal;\n\n    // Chorus\n    if (chorusOn) {\n      const wp = state.chorusWritePos;\n      state.chorusBufL[wp] = outputL;\n      state.chorusBufR[wp] = outputR;\n\n      const lfoL = Math.sin(2 * Math.PI * state.chorusLfoPhase);\n      const lfoR = Math.sin(2 * Math.PI * state.chorusLfoPhase + Math.PI * 0.5);\n      state.chorusLfoPhase += chorusLfoRate;\n      if (state.chorusLfoPhase >= 1.0) state.chorusLfoPhase -= 1.0;\n\n      const delayL = chorusMinDelay + (lfoL * 0.5 + 0.5) * (chorusMaxDelay - chorusMinDelay);\n      const delayR = chorusMinDelay + (lfoR * 0.5 + 0.5) * (chorusMaxDelay - chorusMinDelay);\n\n      const wetL = readDelay(state.chorusBufL, wp, delayL, state.chorusBufLen);\n      const wetR = readDelay(state.chorusBufR, wp, delayR, state.chorusBufLen);\n\n      state.chorusWritePos = (wp + 1) % state.chorusBufLen;\n\n      L[i] = outputL * 0.5 + wetL * 0.5;\n      R[i] = outputR * 0.5 + wetR * 0.5;\n    } else {\n      L[i] = outputL;\n      R[i] = outputR;\n    }\n\n    const envOut = Math.min(envSum, 1.0) * 5.0;\n    Env[i] = envOut;\n    if (negEnv) negEnv[i] = -envOut;\n    EOR[i] = eor;\n    EOF[i] = eof;\n  }\n  return state;\n}\n\n"
+}

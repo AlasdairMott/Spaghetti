@@ -47,6 +47,8 @@ export function useToolAction() {
   const addComponent = useAppStore((s) => s.addComponent);
   const addConnection = useAppStore((s) => s.addConnection);
   const selectComponent = useAppStore((s) => s.selectComponent);
+  const selectComponents = useAppStore((s) => s.selectComponents);
+  const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const selectConnection = useAppStore((s) => s.selectConnection);
 
   const [lineStart, setLineStart] = useState<MmPoint | null>(null);
@@ -59,7 +61,7 @@ export function useToolAction() {
   }, [activeTool]);
 
   const handleCanvasClick = useCallback(
-    (svgX: number, svgY: number) => {
+    (svgX: number, svgY: number, shiftKey = false) => {
       if (!editingModule) return;
 
       switch (activeTool) {
@@ -105,7 +107,17 @@ export function useToolAction() {
             }
           }
           if (hitId) {
-            selectComponent(hitId);
+            if (shiftKey) {
+              // Toggle in/out of current selection
+              const current = selectedComponentIds;
+              if (current.includes(hitId)) {
+                selectComponents(current.filter((id) => id !== hitId));
+              } else {
+                selectComponents([...current, hitId]);
+              }
+            } else {
+              selectComponent(hitId);
+            }
             break;
           }
 
@@ -121,14 +133,14 @@ export function useToolAction() {
           }
           if (hitConnId) {
             selectConnection(hitConnId);
-          } else {
+          } else if (!shiftKey) {
             selectComponent(null);
           }
           break;
         }
       }
     },
-    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectConnection, lineStart]
+    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectComponents, selectedComponentIds, selectConnection, lineStart]
   );
 
   return { handleCanvasClick, lineStart };

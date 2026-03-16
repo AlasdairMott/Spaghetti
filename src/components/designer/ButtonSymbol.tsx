@@ -21,7 +21,7 @@ function ledXPositions(count: number): number[] {
     case 2:
       return [-2, 2];
     case 3:
-      return [-2.5, 0, 2.5];
+      return [-3.81, 0, 3.81];
     default:
       return [];
   }
@@ -40,8 +40,8 @@ export function ButtonSymbol({
   const hasLeds = ledCount > 0;
 
   // When LEDs present: shift button down, LEDs up, label below button
-  const buttonOffsetY = hasLeds ? 2 : 0;
-  const ledOffsetY = hasLeds ? -2 : 0;
+  const buttonOffsetY = hasLeds ? 2.607 : 0;
+  const ledOffsetY = hasLeds ? -(5.73 - buttonOffsetY) : 0;
   const labelY = hasLeds ? 8 : -8;
 
   return (

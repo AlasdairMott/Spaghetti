@@ -16,11 +16,13 @@ const EDGE_INSET = 2; // mm from panel edge for top/bottom lines
 export function PanelBackground({ widthHP }: Props) {
   const widthMm = hpToMm(widthHP);
   const renderMode = useAppStore((s) => s.renderMode);
+  const theme = useAppStore((s) => s.theme);
   const isRendered = renderMode === "rendered";
-  const panelBg = isRendered ? "#E7E0D8" : "#1a1a1a";
-  const panelStroke = isRendered ? "#231F20" : "#444";
-  const gridDotColor = isRendered ? "#bbb" : "#555";
-  const lineColor = isRendered ? "#231F20" : "#444";
+  const isLight = theme === "light";
+  const panelBg = isRendered ? "#E7E0D8" : isLight ? "#e8e4e0" : "#1a1a1a";
+  const panelStroke = isRendered ? "#231F20" : isLight ? "#999" : "#444";
+  const gridDotColor = isRendered ? "#bbb" : isLight ? "#aaa" : "#555";
+  const lineColor = isRendered ? "#231F20" : isLight ? "#555" : "#444";
 
   // First grid row Y
   const topLineY = GRID_Y_OFFSET + GRID_Y * 0.75;

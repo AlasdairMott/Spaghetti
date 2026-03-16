@@ -9,7 +9,7 @@ export function ButtonShape({ stroke = "#aaa" }: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
 
   if (renderMode === "rendered") {
-    const size = 4;
+    const size = 5;
     return (
       <>
         <defs>

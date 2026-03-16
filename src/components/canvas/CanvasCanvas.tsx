@@ -1,0 +1,819 @@
+import { useRef, useState, useCallback, useEffect } from "react";
+import { useAppStore } from "../../store";
+import {
+  PANEL_HEIGHT,
+  HP_WIDTH,
+  GRID_Y,
+  GRID_Y_OFFSET,
+} from "../../constants/grid";
+import { screenToSvg } from "../../utils/svg";
+import { gridToMm } from "../../utils/grid";
+import { detectIsTrackpad } from "../../utils/wheelDetect";
+import { JackShape } from "../designer/shapes/JackShape";
+import { PotShape } from "../designer/shapes/PotShape";
+import { ButtonShape } from "../designer/shapes/ButtonShape";
+import { LedShape } from "../designer/shapes/LedShape";
+import { ComponentLabel } from "../designer/ComponentLabel";
+import { RenderModeToggle } from "../layout/RenderModeToggle";
+import { CanvasWireLayer, PreviewWire, resolveCanvasEndpoint } from "./CanvasWireLayer";
+import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
+import { snapPosition } from "../../store/canvasSlice";
+import type { RackWireEndpoint } from "../../models/types";
+
+const EDGE_INSET = 2;
+const JACK_HIT_RADIUS = 4;
+
+interface DragState {
+  placementId: string;
+  moduleId: string;
+  offsetX: number;
+  offsetY: number;
+}
+
+interface KnobDragState {
+  placementId: string;
+  componentId: string;
+  startY: number;
+  startAngle: number;
+}
+
+interface WireDragState {
+  wireId: string;
+  dragEnd: "from" | "to";
+  anchorPos: { x: number; y: number };
+  anchorEndpoint: RackWireEndpoint;
+  color: string;
+}
+
+interface CanvasCanvasProps {
+  onKnobChange?: (placementId: string, componentId: string, angle: number) => void;
+  onButtonToggle?: (placementId: string, componentId: string, pressed: boolean) => void;
+}
+
+export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const canvas = useAppStore((s) => s.canvas);
+  const modules = useAppStore((s) => s.modules);
+  const canvasPlaceModule = useAppStore((s) => s.canvasPlaceModule);
+  const canvasRemovePlacement = useAppStore((s) => s.canvasRemovePlacement);
+  const canvasMoveModule = useAppStore((s) => s.canvasMoveModule);
+  const canvasAddWire = useAppStore((s) => s.canvasAddWire);
+  const canvasRemoveWire = useAppStore((s) => s.canvasRemoveWire);
+  const canvasSelectWires = useAppStore((s) => s.canvasSelectWires);
+  const canvasSelectedWireIds = useAppStore((s) => s.canvasSelectedWireIds);
+  const canvasSelectedPlacementIds = useAppStore((s) => s.canvasSelectedPlacementIds);
+  const canvasSelectPlacements = useAppStore((s) => s.canvasSelectPlacements);
+  const canvasSetKnobAngle = useAppStore((s) => s.canvasSetKnobAngle);
+  const canvasToggleButton = useAppStore((s) => s.canvasToggleButton);
+  const canvasUpdateWireEndpoint = useAppStore((s) => s.canvasUpdateWireEndpoint);
+  const openModuleForEditing = useAppStore((s) => s.openModuleForEditing);
+  const setMode = useAppStore((s) => s.setMode);
+  const renderMode = useAppStore((s) => s.renderMode);
+  const theme = useAppStore((s) => s.theme);
+  const isLight = theme === "light";
+  const isRendered = renderMode === "rendered";
+  const panelBg = isRendered ? "#E7E0D8" : isLight ? "#e8e4e0" : "#222";
+  const lineColor = isRendered ? "#231F20" : isLight ? "#555" : "#444";
+  const textColor = isRendered ? "#231F20" : isLight ? "#444" : "#777";
+  const canvasBg = isLight ? "#d8d4d0" : "#1a1a1a";
+  const panelStroke = isLight ? "#b0acaa" : "#959495";
+  const compStroke = isLight ? "#555" : "#888";
+  const topLineY = GRID_Y_OFFSET + GRID_Y * 0.75;
+  const bottomRowCount = Math.floor((PANEL_HEIGHT - GRID_Y_OFFSET) / GRID_Y);
+  const bottomLineY = GRID_Y_OFFSET + bottomRowCount * GRID_Y - GRID_Y * 0.75;
+
+  // Pan / zoom
+  const savedCanvasView = useAppStore((s) => s.canvasView);
+  const setCanvasView = useAppStore((s) => s.setCanvasView);
+  const [view, setView] = useState(() => savedCanvasView ?? { zoom: 1, panX: 0, panY: 0 });
+  const viewRef = useRef(view);
+
+  useEffect(() => {
+    return () => { setCanvasView(viewRef.current); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rafId = useRef(0);
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const panOffsetStart = useRef({ x: 0, y: 0 });
+
+  const scheduleViewUpdate = useCallback(
+    (next: { zoom: number; panX: number; panY: number }) => {
+      viewRef.current = next;
+      if (!rafId.current) {
+        rafId.current = requestAnimationFrame(() => {
+          rafId.current = 0;
+          setView(viewRef.current);
+        });
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const v = viewRef.current;
+
+      if (e.ctrlKey) {
+        // Trackpad pinch-to-zoom
+        const pt = screenToSvg(el, e.clientX, e.clientY);
+        const factor = Math.pow(2, -e.deltaY * 0.01);
+        const newZoom = Math.max(0.15, Math.min(10, v.zoom * factor));
+        scheduleViewUpdate({
+          zoom: newZoom,
+          panX: pt.x - (pt.x - v.panX) * (v.zoom / newZoom),
+          panY: pt.y - (pt.y - v.panY) * (v.zoom / newZoom),
+        });
+      } else if (detectIsTrackpad(e)) {
+        // Trackpad two-finger scroll → pan
+        const ctm = el.getScreenCTM();
+        if (!ctm) return;
+        scheduleViewUpdate({
+          zoom: v.zoom,
+          panX: v.panX + e.deltaX / ctm.a,
+          panY: v.panY + e.deltaY / ctm.d,
+        });
+      } else {
+        // Mouse scroll wheel → zoom
+        const pt = screenToSvg(el, e.clientX, e.clientY);
+        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+        const newZoom = Math.max(0.15, Math.min(10, v.zoom * factor));
+        scheduleViewUpdate({
+          zoom: newZoom,
+          panX: pt.x - (pt.x - v.panX) * (v.zoom / newZoom),
+          panY: pt.y - (pt.y - v.panY) * (v.zoom / newZoom),
+        });
+      }
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [scheduleViewUpdate]);
+
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Library drag preview
+  const [libDrag, setLibDrag] = useState<{
+    moduleId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const [wireStart, setWireStart] = useState<RackWireEndpoint | null>(null);
+  const [wirePreviewEnd, setWirePreviewEnd] = useState<{ x: number; y: number } | null>(null);
+  const [knobDrag, setKnobDrag] = useState<KnobDragState | null>(null);
+  const knobDragAngleRef = useRef<number>(150);
+
+  const didDragRef = useRef(false);
+  const pointerDownShiftRef = useRef(false);
+  const [hoveredJack, setHoveredJack] = useState<{
+    placementId: string;
+    componentId: string;
+  } | null>(null);
+  const [wireDrag, setWireDrag] = useState<WireDragState | null>(null);
+  const [wireDragEnd, setWireDragEnd] = useState<{ x: number; y: number } | null>(null);
+
+  // Module search popup (double-click to add)
+  const [searchPopup, setSearchPopup] = useState<{
+    screenX: number;
+    screenY: number;
+    svgX: number;
+    svgY: number;
+  } | null>(null);
+
+  // Compute viewport (infinite canvas — show whatever region the user has panned to)
+  const vbW = 800 / view.zoom;
+  const vbH = 600 / view.zoom;
+  const vbX = view.panX;
+  const vbY = view.panY;
+
+  const resolveEndpointPos = useCallback(
+    (ep: RackWireEndpoint): { x: number; y: number } | null => {
+      return resolveCanvasEndpoint(ep, canvas.placements, modules);
+    },
+    [canvas.placements, modules],
+  );
+
+  const wireStartPos = wireStart ? resolveEndpointPos(wireStart) : null;
+
+  // Keyboard handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+
+      if (e.key === "Escape") {
+        if (wireDrag) {
+          setWireDrag(null);
+          setWireDragEnd(null);
+          return;
+        }
+        setWireStart(null);
+        setWirePreviewEnd(null);
+        canvasSelectWires([]);
+        canvasSelectPlacements([]);
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (canvasSelectedWireIds.length > 0) {
+          for (const id of canvasSelectedWireIds) canvasRemoveWire(id);
+          canvasSelectWires([]);
+        }
+        if (canvasSelectedPlacementIds.length > 0) {
+          for (const id of canvasSelectedPlacementIds) canvasRemovePlacement(id);
+          canvasSelectPlacements([]);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    canvasSelectedWireIds,
+    canvasRemoveWire,
+    canvasSelectWires,
+    canvasSelectPlacements,
+    canvasSelectedPlacementIds,
+    canvasRemovePlacement,
+    wireDrag,
+  ]);
+
+  const findNearestJack = useCallback(
+    (svgX: number, svgY: number): RackWireEndpoint | null => {
+      let closest: RackWireEndpoint | null = null;
+      let closestDist = JACK_HIT_RADIUS;
+      for (const placement of canvas.placements) {
+        const mod = modules.find((m) => m.id === placement.moduleId);
+        if (!mod) continue;
+        for (const comp of mod.components) {
+          if (comp.kind !== "jack") continue;
+          const mm = gridToMm(comp.position);
+          const dist = Math.hypot(
+            svgX - (placement.x + mm.x),
+            svgY - (placement.y + mm.y),
+          );
+          if (dist < closestDist) {
+            closestDist = dist;
+            closest = { placementId: placement.id, componentId: comp.id };
+          }
+        }
+      }
+      return closest;
+    },
+    [canvas.placements, modules],
+  );
+
+  const getModuleIdFromTypes = (types: readonly string[]) => {
+    const t = types.find((s) => s.startsWith("moduleid/"));
+    return t ? t.slice("moduleid/".length) : null;
+  };
+
+  const handleDragOver = (e: React.DragEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    if (!svgRef.current) return;
+    let moduleId = libDrag?.moduleId ?? null;
+    if (!moduleId) {
+      moduleId = getModuleIdFromTypes(e.dataTransfer.types);
+      if (!moduleId) return;
+    }
+    const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+    const mod = modules.find((m) => m.id === moduleId);
+    if (!mod) return;
+    // Center on cursor
+    const x = pt.x - (mod.widthHP * HP_WIDTH) / 2;
+    const y = pt.y - PANEL_HEIGHT / 2;
+    if (!libDrag || Math.abs(x - libDrag.x) > 1 || Math.abs(y - libDrag.y) > 1) {
+      setLibDrag({ moduleId, x, y });
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<SVGSVGElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setLibDrag(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    setLibDrag(null);
+    const moduleId = e.dataTransfer.getData("moduleId");
+    if (!moduleId || !svgRef.current) return;
+    const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+    const mod = modules.find((m) => m.id === moduleId);
+    if (!mod) return;
+    canvasPlaceModule(moduleId, pt.x - (mod.widthHP * HP_WIDTH) / 2, pt.y - PANEL_HEIGHT / 2);
+  };
+
+  const handleModulePointerDown = useCallback(
+    (
+      e: React.PointerEvent<SVGElement>,
+      placementId: string,
+      moduleId: string,
+      px: number,
+      py: number,
+    ) => {
+      if (e.button !== 0 || !svgRef.current) return;
+      e.stopPropagation();
+      didDragRef.current = false;
+      pointerDownShiftRef.current = e.shiftKey;
+      const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+      setDrag({
+        placementId,
+        moduleId,
+        offsetX: pt.x - px,
+        offsetY: pt.y - py,
+      });
+      setDragPreview({ x: px, y: py });
+      (e.target as SVGElement).setPointerCapture(e.pointerId);
+    },
+    [],
+  );
+
+  const handleJackPointerDown = useCallback(
+    (
+      e: React.PointerEvent<SVGElement>,
+      placementId: string,
+      componentId: string,
+    ) => {
+      if (e.button !== 0 || !svgRef.current) return;
+      e.stopPropagation();
+
+      const endpoint: RackWireEndpoint = { placementId, componentId };
+      const pt = screenToSvg(svgRef.current!, e.clientX, e.clientY);
+
+      // Check if this jack already has a wire — if so, start endpoint drag
+      const state = useAppStore.getState();
+      const wires = state.canvas.wires ?? [];
+      for (const wire of wires) {
+        for (const end of ["from", "to"] as const) {
+          const ep = wire[end];
+          if (ep.placementId === placementId && ep.componentId === componentId) {
+            const otherEnd = end === "from" ? "to" : "from";
+            const anchorPos = resolveCanvasEndpoint(wire[otherEnd], state.canvas.placements, state.modules);
+            if (anchorPos) {
+              setWireDrag({
+                wireId: wire.id,
+                dragEnd: end,
+                anchorPos,
+                anchorEndpoint: wire[otherEnd],
+                color: wire.color,
+              });
+              setWireDragEnd({ x: pt.x, y: pt.y });
+              (e.target as SVGElement).setPointerCapture(e.pointerId);
+              return;
+            }
+          }
+        }
+      }
+
+      setWireStart(endpoint);
+      setWirePreviewEnd({ x: pt.x, y: pt.y });
+      (e.target as SVGElement).setPointerCapture(e.pointerId);
+    },
+    [],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      if (drag && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        const rawX = pt.x - drag.offsetX;
+        const rawY = pt.y - drag.offsetY;
+        const mod = modules.find((m) => m.id === drag.moduleId);
+        if (!mod) return;
+        const getWidth = (id: string) =>
+          (modules.find((m) => m.id === id)?.widthHP ?? 0) * HP_WIDTH;
+        const snapped = snapPosition(
+          rawX, rawY, mod.widthHP * HP_WIDTH,
+          canvas.placements, drag.placementId, getWidth,
+        );
+        if (snapped.x !== dragPreview.x || snapped.y !== dragPreview.y) {
+          didDragRef.current = true;
+        }
+        setDragPreview(snapped);
+      }
+      if (wireStart && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        setWirePreviewEnd({ x: pt.x, y: pt.y });
+        setHoveredJack(findNearestJack(pt.x, pt.y));
+      }
+      if (wireDrag && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        setWireDragEnd({ x: pt.x, y: pt.y });
+        setHoveredJack(findNearestJack(pt.x, pt.y));
+      }
+      if (knobDrag) {
+        const deltaY = knobDrag.startY - e.clientY;
+        const newAngle = Math.max(0, Math.min(300, knobDrag.startAngle + deltaY * 1.5));
+        knobDragAngleRef.current = newAngle;
+        onKnobChange?.(knobDrag.placementId, knobDrag.componentId, newAngle);
+        canvasSetKnobAngle(knobDrag.placementId, knobDrag.componentId, newAngle);
+      }
+      if (!drag && !wireStart && !wireDrag && !knobDrag && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        setHoveredJack(findNearestJack(pt.x, pt.y));
+      }
+    },
+    [drag, dragPreview, modules, canvas.placements, wireStart, knobDrag, onKnobChange, canvasSetKnobAngle, wireDrag, findNearestJack],
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      if (drag) {
+        if (didDragRef.current) {
+          canvasMoveModule(drag.placementId, dragPreview.x, dragPreview.y);
+        } else {
+          const pid = drag.placementId;
+          setWireStart(null);
+          setWirePreviewEnd(null);
+          if (pointerDownShiftRef.current) {
+            const cur = useAppStore.getState().canvasSelectedPlacementIds;
+            if (cur.includes(pid)) {
+              canvasSelectPlacements(cur.filter((id) => id !== pid));
+            } else {
+              canvasSelectPlacements([...cur, pid]);
+            }
+          } else {
+            canvasSelectPlacements([pid]);
+          }
+        }
+        setDrag(null);
+        return;
+      }
+      if (knobDrag) {
+        setKnobDrag(null);
+        return;
+      }
+      if (wireDrag && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        const jack = findNearestJack(pt.x, pt.y);
+        if (jack) {
+          const anchor = wireDrag.anchorEndpoint;
+          if (jack.placementId !== anchor.placementId || jack.componentId !== anchor.componentId) {
+            canvasUpdateWireEndpoint(wireDrag.wireId, wireDrag.dragEnd, jack);
+          }
+        }
+        setWireDrag(null);
+        setWireDragEnd(null);
+        setHoveredJack(null);
+        return;
+      }
+      if (wireStart && svgRef.current) {
+        const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+        const jack = findNearestJack(pt.x, pt.y);
+        if (jack && !(jack.placementId === wireStart.placementId && jack.componentId === wireStart.componentId)) {
+          canvasAddWire(wireStart, jack);
+        }
+        setWireStart(null);
+        setWirePreviewEnd(null);
+        setHoveredJack(null);
+        return;
+      }
+      canvasSelectWires([]);
+      canvasSelectPlacements([]);
+    },
+    [drag, dragPreview, canvasMoveModule, knobDrag, canvasSelectWires, canvasSelectPlacements, wireDrag, canvasUpdateWireEndpoint, findNearestJack, wireStart, canvasAddWire],
+  );
+
+  const handlePotPointerDown = useCallback(
+    (e: React.PointerEvent<SVGElement>, placementId: string, componentId: string) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      const knobStates = canvas.knobStates ?? [];
+      const existing = knobStates.find(
+        (k) => k.placementId === placementId && k.componentId === componentId,
+      );
+      const startAngle = existing?.angle ?? 150;
+      knobDragAngleRef.current = startAngle;
+      setKnobDrag({ placementId, componentId, startY: e.clientY, startAngle });
+      (e.target as SVGElement).setPointerCapture(e.pointerId);
+    },
+    [canvas.knobStates],
+  );
+
+  const getKnobAngle = useCallback(
+    (placementId: string, componentId: string): number => {
+      const knobStates = canvas.knobStates ?? [];
+      return knobStates.find(
+        (k) => k.placementId === placementId && k.componentId === componentId,
+      )?.angle ?? 150;
+    },
+    [canvas.knobStates],
+  );
+
+  const isButtonPressed = useCallback(
+    (placementId: string, componentId: string): boolean => {
+      const buttonStates = canvas.buttonStates ?? [];
+      return buttonStates.find(
+        (b) => b.placementId === placementId && b.componentId === componentId,
+      )?.pressed ?? false;
+    },
+    [canvas.buttonStates],
+  );
+
+  const cursor = wireStart || wireDrag ? "crosshair" : knobDrag ? "ns-resize" : "default";
+
+  return (
+    <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", flex: 1, display: "flex" }}>
+        <RenderModeToggle />
+        <svg
+          ref={svgRef}
+          viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ flex: 1, background: canvasBg, display: "block", cursor }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onDoubleClick={(e) => {
+            if (!svgRef.current) return;
+            const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+            setSearchPopup({ screenX: e.clientX, screenY: e.clientY, svgX: pt.x, svgY: pt.y });
+          }}
+          onPointerDown={(e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              isPanning.current = true;
+              panStart.current = { x: e.clientX, y: e.clientY };
+              panOffsetStart.current = { x: viewRef.current.panX, y: viewRef.current.panY };
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }
+          }}
+          onPointerMove={(e) => {
+            if (isPanning.current) {
+              const ctm = e.currentTarget.getScreenCTM();
+              if (ctm) {
+                const v = viewRef.current;
+                scheduleViewUpdate({
+                  zoom: v.zoom,
+                  panX: panOffsetStart.current.x - (e.clientX - panStart.current.x) / ctm.a,
+                  panY: panOffsetStart.current.y - (e.clientY - panStart.current.y) / ctm.d,
+                });
+              }
+              return;
+            }
+            handlePointerMove(e);
+          }}
+          onPointerUp={(e) => {
+            if (e.button === 1) {
+              isPanning.current = false;
+              e.currentTarget.releasePointerCapture(e.pointerId);
+              return;
+            }
+            handlePointerUp(e);
+          }}
+        >
+          {/* Subtle dot grid for orientation */}
+          <defs>
+            <pattern id="canvasGrid" width={HP_WIDTH} height={HP_WIDTH} patternUnits="userSpaceOnUse">
+              <circle cx={HP_WIDTH / 2} cy={HP_WIDTH / 2} r={0.15} fill={isLight ? "#bbb" : "#333"} />
+            </pattern>
+          </defs>
+          <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="url(#canvasGrid)" />
+
+          {/* Modules */}
+          {canvas.placements.map((placement) => {
+            const mod = modules.find((m) => m.id === placement.moduleId);
+            if (!mod) return null;
+            const isDragging = drag?.placementId === placement.id;
+            const isSelected = canvasSelectedPlacementIds.includes(placement.id);
+            const displayX = isDragging ? dragPreview.x : placement.x;
+            const displayY = isDragging ? dragPreview.y : placement.y;
+            const modWidth = mod.widthHP * HP_WIDTH;
+            return (
+              <g
+                key={placement.id}
+                transform={`translate(${displayX}, ${displayY})`}
+                opacity={isDragging ? 0.7 : 1}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  openModuleForEditing(mod);
+                  setMode("designer");
+                }}
+                onPointerDown={(e) =>
+                  handleModulePointerDown(e, placement.id, placement.moduleId, placement.x, placement.y)
+                }
+                style={{
+                  cursor: isDragging ? "grabbing" : isSelected ? "grab" : "pointer",
+                }}
+              >
+                <rect
+                  x={0}
+                  y={0}
+                  width={modWidth}
+                  height={PANEL_HEIGHT}
+                  fill={panelBg}
+                  stroke={isDragging ? "#fa4" : isSelected ? "#4af" : panelStroke}
+                  strokeWidth={isSelected ? 0.6 : 0.2}
+                  rx={0.5}
+                />
+                <line
+                  x1={EDGE_INSET} y1={topLineY} x2={modWidth - EDGE_INSET} y2={topLineY}
+                  stroke={lineColor} strokeWidth={0.2} strokeLinecap="round"
+                />
+                <line
+                  x1={EDGE_INSET} y1={bottomLineY} x2={modWidth - EDGE_INSET} y2={bottomLineY}
+                  stroke={lineColor} strokeWidth={0.2} strokeLinecap="round"
+                />
+
+                {mod.components.map((comp) => {
+                  const pos = gridToMm(comp.position);
+                  const buttonLeds = comp.buttonLedCount ?? 0;
+                  const hasButtonLeds = comp.kind === "button" && buttonLeds > 0;
+                  const labelY =
+                    comp.kind === "jack" ? -5
+                    : comp.kind === "pot" ? -8
+                    : hasButtonLeds ? 8 : -5;
+                  return (
+                    <g key={comp.id} transform={`translate(${pos.x}, ${pos.y})`}>
+                      {comp.kind === "jack" ? (
+                        <g pointerEvents="none">
+                          <JackShape stroke={compStroke} />
+                        </g>
+                      ) : comp.kind === "pot" ? (
+                        <g
+                          style={{ cursor: "ns-resize" }}
+                          onPointerDown={(e) => handlePotPointerDown(e, placement.id, comp.id)}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            canvasSetKnobAngle(placement.id, comp.id, 150);
+                            onKnobChange?.(placement.id, comp.id, 150);
+                          }}
+                        >
+                          <PotShape stroke={compStroke} knobAngle={getKnobAngle(placement.id, comp.id)} />
+                          <circle r={7} fill="transparent" pointerEvents="all" />
+                        </g>
+                      ) : hasButtonLeds ? (
+                        <g
+                          style={{ cursor: "pointer" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newPressed = !isButtonPressed(placement.id, comp.id);
+                            canvasToggleButton(placement.id, comp.id);
+                            onButtonToggle?.(placement.id, comp.id, newPressed);
+                          }}
+                        >
+                          {(buttonLeds === 1 ? [0] : buttonLeds === 2 ? [-2, 2] : [-2.5, 0, 2.5]).map((lx, i) => (
+                            <g key={i} transform={`translate(${lx}, -2)`}>
+                              <LedShape lit={isButtonPressed(placement.id, comp.id)} />
+                            </g>
+                          ))}
+                          <g transform="translate(0, 2)">
+                            <ButtonShape stroke={compStroke} />
+                          </g>
+                          <rect x={-4} y={-5} width={8} height={10} fill="transparent" pointerEvents="all" />
+                        </g>
+                      ) : (
+                        <g
+                          style={{ cursor: "pointer" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newPressed = !isButtonPressed(placement.id, comp.id);
+                            canvasToggleButton(placement.id, comp.id);
+                            onButtonToggle?.(placement.id, comp.id, newPressed);
+                          }}
+                        >
+                          <ButtonShape stroke={isButtonPressed(placement.id, comp.id) ? "#aaf" : compStroke} />
+                          <rect x={-3} y={-3} width={6} height={6} fill="transparent" pointerEvents="all" />
+                        </g>
+                      )}
+                      {comp.kind === "jack" && comp.hasLed && (
+                        <g transform="translate(-5.5, 0)">
+                          <LedShape />
+                        </g>
+                      )}
+                      <ComponentLabel component={comp} y={labelY} />
+                    </g>
+                  );
+                })}
+
+                {(mod.connections ?? []).map((conn) => {
+                  const cdx = conn.to.x - conn.from.x;
+                  const cdy = conn.to.y - conn.from.y;
+                  const clen = Math.hypot(cdx, cdy);
+                  const cux = clen > 0 ? cdx / clen : 0;
+                  const cuy = clen > 0 ? cdy / clen : 0;
+                  const so = conn.startOffset ?? 0;
+                  const eo = conn.endOffset ?? 0;
+                  const cx1 = conn.from.x + cux * so;
+                  const cy1 = conn.from.y + cuy * so;
+                  const cx2 = conn.to.x - cux * eo;
+                  const cy2 = conn.to.y - cuy * eo;
+                  const isArr = conn.kind === "arrow";
+                  const aH = 1.5, aW = 0.75, aG = 0.8;
+                  const leX = isArr ? cx2 - cux * (aH + aG) : cx2;
+                  const leY = isArr ? cy2 - cuy * (aH + aG) : cy2;
+                  const bX = cx2 - cux * aH;
+                  const bY = cy2 - cuy * aH;
+                  const pX = -cuy * aW;
+                  const pY = cux * aW;
+                  return (
+                    <g key={conn.id}>
+                      <line x1={cx1} y1={cy1} x2={leX} y2={leY} stroke={lineColor} strokeWidth={0.2} />
+                      {isArr && (
+                        <polygon points={`${cx2},${cy2} ${bX + pX},${bY + pY} ${bX - pX},${bY - pY}`} fill={lineColor} />
+                      )}
+                      {conn.label && (
+                        <text
+                          x={(cx1 + leX) / 2 + (clen > 0 ? -cuy * 2 : 2)}
+                          y={(cy1 + leY) / 2 + (clen > 0 ? cux * 2 : 0)}
+                          textAnchor="middle" dominantBaseline="central"
+                          fill={textColor} fontSize={2.5}
+                          style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
+                        >
+                          {conn.label}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+
+                <text
+                  x={modWidth / 2} y={6} textAnchor="middle"
+                  fill={textColor} fontSize={3}
+                  style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
+                >
+                  {mod.name}
+                </text>
+              </g>
+            );
+          })}
+
+          <CanvasWireLayer />
+
+          {/* Jack hit targets above wires */}
+          {canvas.placements.map((placement) => {
+            const mod = modules.find((m) => m.id === placement.moduleId);
+            if (!mod) return null;
+            const isDragging = drag?.placementId === placement.id;
+            const displayX = isDragging ? dragPreview.x : placement.x;
+            const displayY = isDragging ? dragPreview.y : placement.y;
+            return mod.components
+              .filter((c) => c.kind === "jack")
+              .map((comp) => {
+                const pos = gridToMm(comp.position);
+                const isHovered =
+                  hoveredJack?.placementId === placement.id &&
+                  hoveredJack?.componentId === comp.id;
+                return (
+                  <g
+                    key={`jhit-${placement.id}-${comp.id}`}
+                    transform={`translate(${displayX + pos.x}, ${displayY + pos.y})`}
+                    onPointerDown={(e) => handleJackPointerDown(e, placement.id, comp.id)}
+                    style={{ cursor: "crosshair" }}
+                  >
+                    {isHovered && (
+                      <circle r={4.5} fill="none" stroke="#4af" strokeWidth={0.6} opacity={0.8} pointerEvents="none" />
+                    )}
+                    <circle r={5} fill="transparent" pointerEvents="all" />
+                  </g>
+                );
+              });
+          })}
+
+          {wireStart && wireStartPos && wirePreviewEnd && (
+            <PreviewWire fromX={wireStartPos.x} fromY={wireStartPos.y} toX={wirePreviewEnd.x} toY={wirePreviewEnd.y} color="#4af" />
+          )}
+          {wireDrag && wireDragEnd && (
+            <PreviewWire fromX={wireDrag.anchorPos.x} fromY={wireDrag.anchorPos.y} toX={wireDragEnd.x} toY={wireDragEnd.y} color={wireDrag.color} />
+          )}
+
+          {/* Library drag ghost preview */}
+          {libDrag && (() => {
+            const mod = modules.find((m) => m.id === libDrag.moduleId);
+            if (!mod) return null;
+            const ghostW = mod.widthHP * HP_WIDTH;
+            return (
+              <rect
+                x={libDrag.x} y={libDrag.y}
+                width={ghostW} height={PANEL_HEIGHT}
+                fill="rgba(80,200,120,0.15)" stroke="#4a6"
+                strokeWidth={0.5} strokeDasharray="2 1"
+                rx={0.5} pointerEvents="none"
+              />
+            );
+          })()}
+        </svg>
+        {searchPopup && (
+          <ModuleSearchPopup
+            screenX={searchPopup.screenX}
+            screenY={searchPopup.screenY}
+            onSelect={(moduleId) => {
+              const mod = modules.find((m) => m.id === moduleId);
+              if (mod) {
+                canvasPlaceModule(
+                  moduleId,
+                  searchPopup.svgX - (mod.widthHP * HP_WIDTH) / 2,
+                  searchPopup.svgY - PANEL_HEIGHT / 2,
+                );
+              }
+              setSearchPopup(null);
+            }}
+            onClose={() => setSearchPopup(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

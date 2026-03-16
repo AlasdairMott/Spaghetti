@@ -27,11 +27,15 @@ export interface EditorSlice {
 
   addComponent: (kind: ComponentKind, position: GridPosition) => void;
   updateComponent: (id: string, updates: Partial<PanelComponent>) => void;
+  updateComponents: (ids: string[], updates: Partial<PanelComponent>) => void;
   removeComponent: (id: string) => void;
+  removeComponents: (ids: string[]) => void;
   moveComponent: (id: string, position: GridPosition) => void;
   moveComponentsByDelta: (ids: string[], deltaX: number, deltaY: number) => void;
   duplicateComponent: (id: string) => string | null;
   pushSnapshot: () => void;
+
+  updateModuleCode: (code: string) => void;
 
   addConnection: (kind: ConnectionKind, from: MmPoint, to: MmPoint, startOffset?: number, endOffset?: number) => void;
   updateConnection: (id: string, updates: Partial<Connection>) => void;
@@ -152,6 +156,21 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
       };
     }),
 
+  updateComponents: (ids, updates) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      const idSet = new Set(ids);
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          components: state.editingModule.components.map((c) =>
+            idSet.has(c.id) ? { ...c, ...updates } : c
+          ),
+        },
+      };
+    }),
+
   removeComponent: (id) =>
     set((state) => {
       if (!state.editingModule) return state;
@@ -163,6 +182,21 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         },
         selectedComponentId: state.selectedComponentId === id ? null : state.selectedComponentId,
         selectedComponentIds: state.selectedComponentIds.filter((sid) => sid !== id),
+      };
+    }),
+
+  removeComponents: (ids) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      const idSet = new Set(ids);
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          components: state.editingModule.components.filter((c) => !idSet.has(c.id)),
+        },
+        selectedComponentId: null,
+        selectedComponentIds: [],
       };
     }),
 
@@ -234,6 +268,12 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
     });
     return newId;
   },
+
+  updateModuleCode: (code) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return { ...pushHistory(state), editingModule: { ...state.editingModule, code } };
+    }),
 
   addConnection: (kind, from, to, startOffset, endOffset) =>
     set((state) => {

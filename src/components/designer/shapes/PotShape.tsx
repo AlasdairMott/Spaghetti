@@ -3,10 +3,13 @@ import potSvgUrl from "../../../assets/pot.svg";
 
 interface Props {
   stroke?: string;
+  knobAngle?: number; // 0-300 degrees, undefined = default center (150)
 }
 
-export function PotShape({ stroke = "#aaa" }: Props) {
+export function PotShape({ stroke = "#aaa", knobAngle }: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
+  // Convert knob angle to visual rotation: 0° = -150° (7 o'clock), 300° = +150° (5 o'clock)
+  const visualRotation = knobAngle != null ? knobAngle - 150 : 0;
 
   if (renderMode === "rendered") {
     const size = 14;
@@ -22,17 +25,24 @@ export function PotShape({ stroke = "#aaa" }: Props) {
             />
           </filter>
         </defs>
-        <image
-          href={potSvgUrl}
-          x={-size / 2}
-          y={-size / 2}
-          width={size}
-          height={size}
-          filter="url(#pot-shadow)"
-        />
+        <g transform={`rotate(${visualRotation})`}>
+          <image
+            href={potSvgUrl}
+            x={-size / 2}
+            y={-size / 2}
+            width={size}
+            height={size}
+            filter="url(#pot-shadow)"
+          />
+        </g>
       </>
     );
   }
+
+  // Wireframe: rotate the indicator line
+  const rad = (visualRotation * Math.PI) / 180;
+  const lineX = Math.sin(rad) * 6.5;
+  const lineY = -Math.cos(rad) * 6.5;
 
   return (
     <>
@@ -40,8 +50,8 @@ export function PotShape({ stroke = "#aaa" }: Props) {
       <line
         x1={0}
         y1={0}
-        x2={0}
-        y2={-6.5}
+        x2={lineX}
+        y2={lineY}
         stroke="#ddd"
         strokeWidth={0.3}
         strokeLinecap="round"

@@ -1,12 +1,76 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+
+  /* Dark palette (default) */
+  --color-surface-0: #111;
+  --color-surface-1: #1a1a1a;
+  --color-surface-2: #2a2a2a;
+  --color-surface-3: #333;
+  --color-surface-4: #444;
+  --color-border: #333;
+  --color-border-light: #444;
+  --color-text: #ddd;
+  --color-text-muted: #888;
+  --color-text-dim: #666;
+  --color-text-faint: #555;
+  --color-accent: #4af;
+  --color-accent-bg: #335;
+  --color-accent-border: #44a;
+  --color-accent-text: #aaf;
+  --color-danger: #faa;
+  --color-danger-bg: #433;
+  --color-danger-border: #a44;
+  --color-success-bg: #253;
+  --color-success-border: #4a6;
+  --color-success-text: #afa;
+  --color-warning-bg: #532;
+  --color-warning-border: #a64;
+  --color-warning-text: #fa8;
 }
 
-body {
-  background: #111;
-  color: #ddd;
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
-  overflow: hidden;
+/*
+  Light mode overrides — activate by adding class="light" to <html>.
+  Uses Tailwind v4 custom variant.
+*/
+@custom-variant light (&:where(.light, .light *));
+
+@layer base {
+  .light {
+    --color-surface-0: #f5f5f5;
+    --color-surface-1: #fff;
+    --color-surface-2: #f0f0f0;
+    --color-surface-3: #e0e0e0;
+    --color-surface-4: #ccc;
+    --color-border: #ddd;
+    --color-border-light: #ccc;
+    --color-text: #222;
+    --color-text-muted: #666;
+    --color-text-dim: #888;
+    --color-text-faint: #aaa;
+    --color-accent: #26c;
+    --color-accent-bg: #e0e8ff;
+    --color-accent-border: #99c;
+    --color-accent-text: #33a;
+    --color-danger: #c44;
+    --color-danger-bg: #fee;
+    --color-danger-border: #c88;
+    --color-success-bg: #e6f6e6;
+    --color-success-border: #6a6;
+    --color-success-text: #282;
+    --color-warning-bg: #fff3e0;
+    --color-warning-border: #c96;
+    --color-warning-text: #a63;
+  }
+}
+
+@layer base {
+  body {
+    background: var(--color-surface-0);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
 }

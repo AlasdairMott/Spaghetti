@@ -34,11 +34,11 @@ export function JackSymbol({
     >
       <JackShape stroke={isSelected ? "#4af" : "#aaa"} />
       {component.hasLed && (
-        <g transform="translate(-5.5, 0)">
+        <g transform="translate(-6.35, 0)">
           <LedShape />
         </g>
       )}
-      <ComponentLabel component={component} y={-8} />
+      <ComponentLabel component={component} y={-5} />
     </g>
   );
 }

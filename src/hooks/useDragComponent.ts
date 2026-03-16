@@ -7,6 +7,7 @@ export function useDragComponent() {
   const moveComponent = useAppStore((s) => s.moveComponent);
   const moveComponentsByDelta = useAppStore((s) => s.moveComponentsByDelta);
   const selectComponent = useAppStore((s) => s.selectComponent);
+  const selectComponents = useAppStore((s) => s.selectComponents);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const pushSnapshot = useAppStore((s) => s.pushSnapshot);
   const duplicateComponent = useAppStore((s) => s.duplicateComponent);
@@ -37,9 +38,18 @@ export function useDragComponent() {
           pushSnapshot();
         }
       } else {
-        // If clicking a component that's part of multi-selection, drag all
         const isInSelection = selectedComponentIds.includes(componentId);
-        if (isInSelection && selectedComponentIds.length > 1) {
+        if (e.shiftKey) {
+          // Shift+click: toggle component in/out of selection
+          if (isInSelection) {
+            selectComponents(selectedComponentIds.filter((id) => id !== componentId));
+          } else {
+            selectComponents([...selectedComponentIds, componentId]);
+          }
+          dragId.current = componentId;
+          dragMulti.current = true;
+        } else if (isInSelection && selectedComponentIds.length > 1) {
+          // Clicking a component that's part of multi-selection: drag all
           dragId.current = componentId;
           dragMulti.current = true;
         } else {
@@ -52,7 +62,7 @@ export function useDragComponent() {
 
       (e.target as SVGElement).setPointerCapture(e.pointerId);
     },
-    [activeTool, selectComponent, selectedComponentIds, pushSnapshot, duplicateComponent]
+    [activeTool, selectComponent, selectComponents, selectedComponentIds, pushSnapshot, duplicateComponent]
   );
 
   const handleComponentPointerMove = useCallback(

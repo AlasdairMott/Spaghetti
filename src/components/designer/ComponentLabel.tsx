@@ -15,7 +15,9 @@ interface Props {
 
 export function ComponentLabel({ component, y }: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
-  const textColor = renderMode === "rendered" ? "#231F20" : "#ddd";
+  const theme = useAppStore((s) => s.theme);
+  const isLight = theme === "light";
+  const textColor = renderMode === "rendered" ? "#231F20" : isLight ? "#333" : "#ddd";
   if (!component.label && !component.labelColor) return null;
 
   const dotColor = component.labelColor

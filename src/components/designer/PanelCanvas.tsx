@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { PANEL_HEIGHT } from "../../constants/grid";
 import { hpToMm, snapToGrid } from "../../utils/grid";
 import { screenToSvg } from "../../utils/svg";
@@ -12,6 +12,7 @@ import { ConnectionLayer } from "./ConnectionLayer";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { PlacementPreview } from "./PlacementPreview";
 import type { GridPosition } from "../../models/types";
+import { RenderModeToggle } from "../layout/RenderModeToggle";
 
 interface MarqueeRect {
   x1: number;
@@ -21,10 +22,17 @@ interface MarqueeRect {
 }
 
 export function PanelCanvas() {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [svgEl, setSvgEl] = useState<SVGSVGElement | null>(null);
+  const svgCallbackRef = useCallback((el: SVGSVGElement | null) => {
+    svgRef.current = el;
+    setSvgEl(el);
+  }, []);
   const editingModule = useAppStore((s) => s.editingModule);
   const activeTool = useAppStore((s) => s.activeTool);
   const renderMode = useAppStore((s) => s.renderMode);
+  const theme = useAppStore((s) => s.theme);
+  const isLight = theme === "light";
   const selectComponents = useAppStore((s) => s.selectComponents);
   const [previewPos, setPreviewPos] = useState<GridPosition | null>(null);
   const [cursorMm, setCursorMm] = useState<{ x: number; y: number } | null>(null);
@@ -33,12 +41,12 @@ export function PanelCanvas() {
   const {
     zoom,
     panOffset,
-    handleWheel,
     handlePointerDown: panPointerDown,
     handlePointerMove: panPointerMove,
     handlePointerUp: panPointerUp,
-  } = usePanZoom();
+  } = usePanZoom(svgEl);
   const { handleCanvasClick, lineStart } = useToolAction();
+
 
   if (!editingModule) return null;
 
@@ -58,10 +66,10 @@ export function PanelCanvas() {
     if (e.button === 0 && svgRef.current) {
       const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
       if (activeTool === "select") {
-        // Start marquee
+        // Start marquee (don't clear selection if shift is held)
         isMarqueeing.current = true;
         setMarquee({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
-        selectComponents([]);
+        if (!e.shiftKey) selectComponents([]);
       } else {
         handleCanvasClick(pt.x, pt.y);
       }
@@ -98,7 +106,7 @@ export function PanelCanvas() {
       const dx = maxX - minX;
       const dy = maxY - minY;
       if (dx < 1 && dy < 1) {
-        handleCanvasClick(marquee.x1, marquee.y1);
+        handleCanvasClick(marquee.x1, marquee.y1, e.shiftKey);
       } else {
         // Select all components within marquee bounds
         const ids = editingModule.components
@@ -107,7 +115,14 @@ export function PanelCanvas() {
             return mm.x >= minX && mm.x <= maxX && mm.y >= minY && mm.y <= maxY;
           })
           .map((c) => c.id);
-        selectComponents(ids);
+        if (e.shiftKey) {
+          // Add marquee results to existing selection
+          const existing = useAppStore.getState().selectedComponentIds;
+          const merged = [...new Set([...existing, ...ids])];
+          selectComponents(merged);
+        } else {
+          selectComponents(ids);
+        }
       }
       setMarquee(null);
     }
@@ -131,16 +146,17 @@ export function PanelCanvas() {
     : null;
 
   return (
+    <div style={{ position: "relative", flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+    <RenderModeToggle />
     <svg
-      ref={svgRef}
+      ref={svgCallbackRef}
       viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
       style={{
         flex: 1,
-        background: "#111",
+        background: "var(--color-surface-0)",
         cursor,
         display: "block",
       }}
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -152,7 +168,7 @@ export function PanelCanvas() {
         x={widthMm / 2}
         y={6}
         textAnchor="middle"
-        fill={renderMode === "rendered" ? "#231F20" : "#777"}
+        fill={renderMode === "rendered" ? "#231F20" : isLight ? "#444" : "#777"}
         fontSize={3}
         style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
       >
@@ -222,5 +238,6 @@ export function PanelCanvas() {
         );
       })()}
     </svg>
+    </div>
   );
 }

@@ -4,35 +4,40 @@ interface Props {
   module: Module;
   onDragStart: (moduleId: string) => void;
   onDelete: (moduleId: string) => void;
+  onEdit?: (moduleId: string) => void;
 }
 
-export function ModuleCard({ module, onDragStart, onDelete }: Props) {
+export function ModuleCard({ module, onDragStart, onDelete, onEdit }: Props) {
   return (
     <div
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("moduleId", module.id);
+        e.dataTransfer.setData(`moduleid/${module.id}`, "");
         onDragStart(module.id);
       }}
-      style={{
-        padding: "8px 12px",
-        background: "#2a2a2a",
-        border: "1px solid #444",
-        borderRadius: 4,
-        cursor: "grab",
-        fontSize: 13,
-        color: "#ddd",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 8,
-      }}
+      className="flex items-start gap-2 px-3 py-2 bg-surface-2 border border-border-light rounded cursor-grab text-[13px] text-text"
     >
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500 }}>{module.name}</div>
-        <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
+      <div className="flex-1">
+        <div className="font-medium">{module.name}</div>
+        <div className="text-[11px] text-text-muted mt-0.5">
           {module.widthHP} HP &middot; {module.components.length} components
         </div>
       </div>
+      {onEdit && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(module.id);
+          }}
+          className="bg-transparent border-none cursor-pointer p-0.5 text-text-dim text-sm leading-none"
+          title="Edit module"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          </svg>
+        </button>
+      )}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -40,15 +45,7 @@ export function ModuleCard({ module, onDragStart, onDelete }: Props) {
             onDelete(module.id);
           }
         }}
-        style={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          padding: 2,
-          color: "#666",
-          fontSize: 14,
-          lineHeight: 1,
-        }}
+        className="bg-transparent border-none cursor-pointer p-0.5 text-text-dim text-sm leading-none"
         title="Delete module"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

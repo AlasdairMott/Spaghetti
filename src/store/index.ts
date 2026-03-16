@@ -3,9 +3,10 @@ import { persist } from "zustand/middleware";
 import { createEditorSlice, type EditorSlice } from "./editorSlice";
 import { createModulesSlice, type ModulesSlice } from "./modulesSlice";
 import { createRackSlice, type RackSlice } from "./rackSlice";
+import { createCanvasSlice, type CanvasSlice } from "./canvasSlice";
 import { createUiSlice, type UiSlice } from "./uiSlice";
 
-export type AppStore = EditorSlice & ModulesSlice & RackSlice & UiSlice;
+export type AppStore = EditorSlice & ModulesSlice & RackSlice & CanvasSlice & UiSlice;
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -13,6 +14,7 @@ export const useAppStore = create<AppStore>()(
       ...createEditorSlice(...args),
       ...createModulesSlice(...args),
       ...createRackSlice(...args),
+      ...createCanvasSlice(...args),
       ...createUiSlice(...args),
     }),
     {
@@ -20,6 +22,7 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         modules: state.modules,
         rack: state.rack,
+        canvas: state.canvas,
       }),
     }
   )
