@@ -1,5 +1,5 @@
 import { useAppStore } from "../../store";
-import { Eye, EyeOff } from "lucide-react";
+import { Circle } from "lucide-react";
 
 export function RenderModeToggle() {
   const renderMode = useAppStore((s) => s.renderMode);
@@ -14,7 +14,7 @@ export function RenderModeToggle() {
       }`}
       title={`Switch to ${isRendered ? "wireframe" : "rendered"} mode`}
     >
-      {isRendered ? <Eye size={14} /> : <EyeOff size={14} />}
+      {isRendered ? <img src="/globe.png" alt="Rendered" className="size-3.5" /> : <Circle size={14} />}
       {isRendered ? "Rendered" : "Wireframe"}
     </button>
   );
