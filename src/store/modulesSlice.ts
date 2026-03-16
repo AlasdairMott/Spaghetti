@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import type { Module } from "../models/types";
 import type { AppStore } from "./index";
 import { builtinModules } from "../data/builtinModules";
+import { defaultRack, defaultCanvas } from "../data/defaultProject";
 
 export interface ModulesSlice {
   modules: Module[];
@@ -31,24 +32,8 @@ export const createModulesSlice: StateCreator<AppStore, [], [], ModulesSlice> = 
 
   resetProject: () =>
     set(() => ({
-      modules: builtinModules.map((m) => ({ ...m })),
-      rack: {
-        id: "default",
-        name: "Rack",
-        widthHP: 84,
-        rows: 1,
-        placements: [],
-        wires: [],
-        knobStates: [],
-        buttonStates: [],
-      },
-      canvas: {
-        id: "default",
-        name: "Canvas",
-        placements: [],
-        wires: [],
-        knobStates: [],
-        buttonStates: [],
-      },
+      modules: structuredClone(builtinModules),
+      rack: structuredClone(defaultRack),
+      canvas: structuredClone(defaultCanvas),
     })),
 });
