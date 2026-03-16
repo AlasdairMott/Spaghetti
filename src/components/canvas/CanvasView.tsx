@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../../store";
 import { CanvasCanvas } from "./CanvasCanvas";
 import { ModuleCard } from "../rack/ModuleCard";
+import { TagFilter, filterModulesByTag } from "../ui/TagFilter";
 import {
   Clipboard,
   Unplug,
@@ -38,6 +39,12 @@ export function CanvasView() {
   const selectedModule = selectedPlacement
     ? modules.find((m) => m.id === selectedPlacement.moduleId)
     : null;
+
+  const [libraryTag, setLibraryTag] = useState<string | null>(null);
+  const filteredModules = useMemo(
+    () => filterModulesByTag(modules, libraryTag),
+    [modules, libraryTag],
+  );
 
   // Code editor panel
   const [codeOpen, setCodeOpen] = useState(false);
@@ -241,13 +248,16 @@ export function CanvasView() {
                 <PackagePlus size={12} /> Import
               </SidebarButton>
             </div>
-            {modules.length === 0 ? (
+            <TagFilter modules={modules} activeTag={libraryTag} onTagChange={setLibraryTag} />
+            {filteredModules.length === 0 ? (
               <div className="text-xs text-text-faint">
-                No saved modules yet. Design a module first, then save it.
+                {modules.length === 0
+                  ? "No saved modules yet. Design a module first, then save it."
+                  : "No modules match this tag."}
               </div>
             ) : (
               <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
-                {modules.map((mod) => (
+                {filteredModules.map((mod) => (
                   <ModuleCard
                     key={mod.id}
                     module={mod}

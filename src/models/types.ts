@@ -60,6 +60,8 @@ export interface Module {
   connections: Connection[];
   /** User-written audio processing code (JavaScript) */
   code?: string;
+  /** Tags for categorisation and search */
+  tags?: string[];
 }
 
 export interface RackPlacement {

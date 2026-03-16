@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAppStore } from "../../store";
 import { gridToMm } from "../../utils/grid";
 import { HP_WIDTH, PANEL_HEIGHT } from "../../constants/grid";
@@ -87,6 +88,54 @@ function exportPanelSvg(module: Module) {
 
 const inputCls = "w-full px-2 py-1 bg-surface-2 border border-border-light rounded text-text text-[13px] box-border";
 const labelCls = "text-[11px] text-text-muted mb-0.5 block";
+
+function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [input, setInput] = useState("");
+
+  const addTag = () => {
+    const tag = input.trim().toLowerCase();
+    if (tag && !tags.includes(tag)) {
+      onChange([...tags, tag]);
+    }
+    setInput("");
+  };
+
+  return (
+    <div>
+      <span className={labelCls}>Tags</span>
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-1">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-surface-3 rounded text-[11px] text-text-muted"
+            >
+              {tag}
+              <button
+                onClick={() => onChange(tags.filter((t) => t !== tag))}
+                className="bg-transparent border-none cursor-pointer p-0 text-text-dim text-[11px] leading-none hover:text-text"
+              >
+                &times;
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        className={inputCls}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); addTag(); }
+          if (e.key === "Backspace" && !input && tags.length > 0) {
+            onChange(tags.slice(0, -1));
+          }
+        }}
+        placeholder="Add tag..."
+      />
+    </div>
+  );
+}
 
 /** Check if all items in array share the same value for a key */
 function allSame<T>(items: T[], key: keyof T): boolean {
@@ -526,6 +575,7 @@ export function PropertyEditor() {
   const removeConnection = useAppStore((s) => s.removeConnection);
   const updateModuleName = useAppStore((s) => s.updateModuleName);
   const updateModuleWidth = useAppStore((s) => s.updateModuleWidth);
+  const updateModuleTags = useAppStore((s) => s.updateModuleTags);
 
   const singleComponent = editingModule?.components.find((c) => c.id === selectedId);
   const multiComponents = selectedIds.length > 1
@@ -641,6 +691,10 @@ export function PropertyEditor() {
               min={1}
             />
           </div>
+          <TagsEditor
+            tags={editingModule.tags ?? []}
+            onChange={(tags) => updateModuleTags(tags)}
+          />
           <div className="text-[11px] text-text-dim">
             {editingModule.components.length} components
           </div>

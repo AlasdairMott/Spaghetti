@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useAppStore } from "../../store";
 import { RackCanvas } from "./RackCanvas";
 import { ModuleCard } from "./ModuleCard";
+import { TagFilter, filterModulesByTag } from "../ui/TagFilter";
 import type { Module, Rack } from "../../models/types";
 import {
   Clipboard,
@@ -48,6 +49,12 @@ export function RackView() {
   const selectedModule = selectedPlacement
     ? modules.find((m) => m.id === selectedPlacement.moduleId)
     : null;
+
+  const [libraryTag, setLibraryTag] = useState<string | null>(null);
+  const filteredModules = useMemo(
+    () => filterModulesByTag(modules, libraryTag),
+    [modules, libraryTag],
+  );
 
   const faultedIds = useAppStore((s) => s.faultedIds);
   const [showBom, setShowBom] = useState(false);
@@ -399,13 +406,16 @@ export function RackView() {
                 <PackagePlus size={12} /> Import
               </SidebarButton>
             </div>
-            {modules.length === 0 ? (
+            <TagFilter modules={modules} activeTag={libraryTag} onTagChange={setLibraryTag} />
+            {filteredModules.length === 0 ? (
               <div className="text-xs text-text-faint">
-                No saved modules yet. Design a module first, then save it.
+                {modules.length === 0
+                  ? "No saved modules yet. Design a module first, then save it."
+                  : "No modules match this tag."}
               </div>
             ) : (
               <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
-                {modules.map((mod) => (
+                {filteredModules.map((mod) => (
                   <ModuleCard
                     key={mod.id}
                     module={mod}

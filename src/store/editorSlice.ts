@@ -24,6 +24,7 @@ export interface EditorSlice {
 
   updateModuleName: (name: string) => void;
   updateModuleWidth: (widthHP: number) => void;
+  updateModuleTags: (tags: string[]) => void;
 
   addComponent: (kind: ComponentKind, position: GridPosition) => void;
   updateComponent: (id: string, updates: Partial<PanelComponent>) => void;
@@ -115,6 +116,12 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
     set((state) => {
       if (!state.editingModule) return state;
       return { ...pushHistory(state), editingModule: { ...state.editingModule, widthHP: Math.max(1, widthHP) } };
+    }),
+
+  updateModuleTags: (tags) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return { ...pushHistory(state), editingModule: { ...state.editingModule, tags } };
     }),
 
   addComponent: (kind, position) =>

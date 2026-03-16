@@ -18,11 +18,20 @@ export function ModuleCard({ module, onDragStart, onDelete, onEdit }: Props) {
       }}
       className="flex items-start gap-2 px-3 py-2 bg-surface-2 border border-border-light rounded cursor-grab text-[13px] text-text"
     >
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="font-medium">{module.name}</div>
         <div className="text-[11px] text-text-muted mt-0.5">
           {module.widthHP} HP &middot; {module.components.length} components
         </div>
+        {module.tags && module.tags.length > 0 && (
+          <div className="flex flex-wrap gap-0.5 mt-1">
+            {module.tags.map((t) => (
+              <span key={t} className="text-[9px] text-text-dim bg-surface-3 rounded px-1 py-px">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       {onEdit && (
         <button
