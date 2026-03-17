@@ -47,11 +47,14 @@ export function ScopePanel() {
       ctx.stroke();
 
       if (analyser) {
-        if (!bufferRef.current || bufferRef.current.length !== analyser.fftSize) {
+        if (
+          !bufferRef.current ||
+          bufferRef.current.length !== analyser.fftSize
+        ) {
           bufferRef.current = new Float32Array(analyser.fftSize);
         }
         const buf = bufferRef.current;
-        analyser.getFloatTimeDomainData(buf);
+        analyser.getFloatTimeDomainData(buf as Float32Array<ArrayBuffer>);
 
         ctx.strokeStyle = isLight ? "#4a9" : "#4f8";
         ctx.lineWidth = 1.5;
@@ -61,7 +64,7 @@ export function ScopePanel() {
         for (let i = 0; i < w; i++) {
           const idx = Math.floor(i * step);
           const val = buf[idx];
-          const y = (1 - val) * h / 2;
+          const y = ((1 - val) * h) / 2;
           if (i === 0) ctx.moveTo(i, y);
           else ctx.lineTo(i, y);
         }
@@ -103,21 +106,32 @@ export function ScopePanel() {
         }`}
         title="Toggle Scope"
       >
-        <Activity size={16} color={open ? "var(--color-surface-0)" : "var(--color-text)"} strokeWidth={1.5} />
+        <Activity
+          size={16}
+          color={open ? "var(--color-surface-0)" : "var(--color-text)"}
+          strokeWidth={1.5}
+        />
       </button>
       {open && (
-        <div className="absolute bottom-10 right-2 z-10 bg-surface-1 border border-border-light rounded-lg overflow-hidden shadow-lg"
+        <div
+          className="absolute bottom-10 right-2 z-10 bg-surface-1 border border-border-light rounded-lg overflow-hidden shadow-lg"
           style={{ width: 320, height: 180 }}
         >
           <div className="flex items-center justify-between px-2 py-1 bg-surface-2 border-b border-border">
-            <span className="text-[11px] text-text-muted uppercase tracking-wide">Scope</span>
+            <span className="text-[11px] text-text-muted uppercase tracking-wide">
+              Scope
+            </span>
             {!audioRunning && (
               <span className="text-[10px] text-text-faint">No signal</span>
             )}
           </div>
           <canvas
             ref={canvasRef}
-            style={{ width: "100%", height: "calc(100% - 24px)", display: "block" }}
+            style={{
+              width: "100%",
+              height: "calc(100% - 24px)",
+              display: "block",
+            }}
           />
         </div>
       )}

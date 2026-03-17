@@ -7,8 +7,6 @@ import type { Module, Rack } from "../../models/types";
 import {
   Clipboard,
   Unplug,
-  Download,
-  Upload,
   AlertTriangle,
   PackagePlus,
   Copy,
@@ -255,62 +253,6 @@ export function RackView() {
           <SidebarButton onClick={() => setShowBom(true)}>
             <TableProperties size={14} /> Bill of Materials
           </SidebarButton>
-          {/* <SidebarButton
-            onClick={() => {
-              const state = useAppStore.getState();
-              const data = JSON.stringify(
-                { modules: state.modules, rack: state.rack },
-                null,
-                2,
-              );
-              const blob = new Blob([data], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "spaghetti-project.json";
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            <Download size={14} /> Export Project
-          </SidebarButton>
-          <SidebarButton
-            onClick={() => {
-              const input = document.createElement("input");
-              input.type = "file";
-              input.accept = ".json";
-              input.onchange = () => {
-                const file = input.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () => {
-                  try {
-                    const data = JSON.parse(reader.result as string);
-                    if (!data.modules || !data.rack) {
-                      alert("Invalid project file");
-                      return;
-                    }
-                    if (
-                      !confirm(
-                        "This will replace all modules and the rack. Continue?",
-                      )
-                    )
-                      return;
-                    useAppStore.setState({
-                      modules: data.modules,
-                      rack: data.rack,
-                    });
-                  } catch {
-                    alert("Failed to parse JSON file");
-                  }
-                };
-                reader.readAsText(file);
-              };
-              input.click();
-            }}
-          >
-            <Upload size={14} /> Import Project
-          </SidebarButton> */}
         </div>
 
         {/* Selected module properties OR Module Library */}
