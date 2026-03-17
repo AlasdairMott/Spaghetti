@@ -15,7 +15,7 @@ import { ButtonShape } from "../designer/shapes/ButtonShape";
 import { LedShape } from "../designer/shapes/LedShape";
 import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
-import { CanvasWireLayer, PreviewWire, resolveCanvasEndpoint } from "./CanvasWireLayer";
+import { CanvasWireLayer, PreviewWire, resolveCanvasEndpoint, type CanvasDragOverride } from "./CanvasWireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import { snapPosition } from "../../store/canvasSlice";
 import type { RackWireEndpoint } from "../../models/types";
@@ -740,7 +740,7 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
             );
           })}
 
-          <CanvasWireLayer />
+          <CanvasWireLayer dragOverride={drag ? { placementId: drag.placementId, x: dragPreview.x, y: dragPreview.y } : null} />
 
           {/* Jack hit targets above wires */}
           {canvas.placements.map((placement) => {

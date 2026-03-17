@@ -15,7 +15,7 @@ import { ButtonShape } from "../designer/shapes/ButtonShape";
 import { LedShape } from "../designer/shapes/LedShape";
 import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
-import { WireLayer, PreviewWire } from "./WireLayer";
+import { WireLayer, PreviewWire, type RackDragOverride } from "./WireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import type { RackWireEndpoint } from "../../models/types";
 
@@ -1043,7 +1043,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
             );
           })}
 
-          <WireLayer />
+          <WireLayer dragOverride={drag ? { placementId: drag.placementId, positionHP: dragPreviewHP, row: dragPreviewRow } : null} />
 
           {/* Jack hit targets rendered above wires so they're always clickable */}
           {rack.placements.map((placement) => {

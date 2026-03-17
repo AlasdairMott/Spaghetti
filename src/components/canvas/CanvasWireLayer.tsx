@@ -107,13 +107,28 @@ export function PreviewWire({ fromX, fromY, toX, toY, color }: {
 
 export { resolveEndpoint as resolveCanvasEndpoint };
 
-export function CanvasWireLayer() {
+export interface CanvasDragOverride {
+  placementId: string;
+  x: number;
+  y: number;
+}
+
+export function CanvasWireLayer({ dragOverride }: { dragOverride?: CanvasDragOverride | null }) {
   const wires = useAppStore((s) => s.canvas.wires ?? EMPTY_WIRES);
-  const placements = useAppStore((s) => s.canvas.placements);
+  const storePlacements = useAppStore((s) => s.canvas.placements);
   const modules = useAppStore((s) => s.modules);
   const selectedWireIds = useAppStore((s) => s.canvasSelectedWireIds);
   const selectWires = useAppStore((s) => s.canvasSelectWires);
   const selectPlacements = useAppStore((s) => s.canvasSelectPlacements);
+
+  // Apply drag override to placements so wires follow the dragged module
+  const placements = dragOverride
+    ? storePlacements.map((p) =>
+        p.id === dragOverride.placementId
+          ? { ...p, x: dragOverride.x, y: dragOverride.y }
+          : p,
+      )
+    : storePlacements;
 
   const handleWireClick = (wireId: string, shiftKey: boolean) => {
     selectPlacements([]);

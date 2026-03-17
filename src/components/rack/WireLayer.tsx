@@ -160,13 +160,28 @@ export function PreviewWire({ fromX, fromY, toX, toY, color }: PreviewWireProps)
   );
 }
 
-export function WireLayer() {
+export interface RackDragOverride {
+  placementId: string;
+  positionHP: number;
+  row: number;
+}
+
+export function WireLayer({ dragOverride }: { dragOverride?: RackDragOverride | null }) {
   const wires = useAppStore((s) => s.rack.wires ?? EMPTY_WIRES);
-  const placements = useAppStore((s) => s.rack.placements);
+  const storePlacements = useAppStore((s) => s.rack.placements);
   const modules = useAppStore((s) => s.modules);
   const selectedWireIds = useAppStore((s) => s.selectedWireIds);
   const selectWires = useAppStore((s) => s.selectWires);
   const selectPlacements = useAppStore((s) => s.selectPlacements);
+
+  // Apply drag override to placements so wires follow the dragged module
+  const placements = dragOverride
+    ? storePlacements.map((p) =>
+        p.id === dragOverride.placementId
+          ? { ...p, positionHP: dragOverride.positionHP, row: dragOverride.row }
+          : p,
+      )
+    : storePlacements;
 
   const handleWireClick = (wireId: string, shiftKey: boolean) => {
     // selectPlacements clears selectedWireIds in the store, so call it first
