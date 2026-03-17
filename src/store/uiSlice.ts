@@ -32,7 +32,7 @@ export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (
 ) => ({
   mode: "designer",
   renderMode: "wireframe",
-  theme: (localStorage.getItem("lw-theme") as ThemeMode) || "dark",
+  theme: (localStorage.getItem("spaghetti-theme") as ThemeMode) || "dark",
   zoom: 0.33,
   panOffset: { x: 0, y: 0 },
   audioRunning: false,
@@ -46,7 +46,7 @@ export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (
   setMode: (mode) => set({ mode }),
   setRenderMode: (renderMode) => set({ renderMode }),
   setTheme: (theme) => {
-    localStorage.setItem("lw-theme", theme);
+    localStorage.setItem("spaghetti-theme", theme);
     set({ theme });
   },
   setZoom: (zoom) => set({ zoom: Math.max(0.1, Math.min(zoom, 20)) }),

@@ -63,7 +63,7 @@ export function RackView() {
   // Code editor panel
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeWidth, setCodeWidth] = useState(() => {
-    const saved = localStorage.getItem("lw-code-width");
+    const saved = localStorage.getItem("spaghetti-code-width");
     return saved ? parseInt(saved, 10) || 500 : 500;
   });
   const resizing = useRef(false);
@@ -82,7 +82,7 @@ export function RackView() {
       };
       const onUp = () => {
         resizing.current = false;
-        localStorage.setItem("lw-code-width", String(lastWidth));
+        localStorage.setItem("spaghetti-code-width", String(lastWidth));
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
       };
@@ -267,7 +267,7 @@ export function RackView() {
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
-              a.download = "lw-project.json";
+              a.download = "spaghetti-project.json";
               a.click();
               URL.revokeObjectURL(url);
             }}

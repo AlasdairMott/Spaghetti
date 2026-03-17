@@ -6,7 +6,6 @@ import { PropertyEditor } from "./PropertyEditor";
 import { CodeEditor } from "./CodeEditor";
 import { Code } from "lucide-react";
 
-
 export function DesignerView() {
   const editingModule = useAppStore((s) => s.editingModule);
   const createNewModule = useAppStore((s) => s.createNewModule);
@@ -21,7 +20,7 @@ export function DesignerView() {
 
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeWidth, setCodeWidth] = useState(() => {
-    const saved = localStorage.getItem("lw-code-width");
+    const saved = localStorage.getItem("spaghetti-code-width");
     return saved ? parseInt(saved, 10) || 500 : 500;
   });
   const resizing = useRef(false);
@@ -80,7 +79,16 @@ export function DesignerView() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [setActiveTool, removeComponent, removeConnection, selectedComponentIds, selectedConnectionId, selectComponent, undo, redo]);
+  }, [
+    setActiveTool,
+    removeComponent,
+    removeConnection,
+    selectedComponentIds,
+    selectedConnectionId,
+    selectComponent,
+    undo,
+    redo,
+  ]);
 
   // Auto-create a module if none is open
   useEffect(() => {
@@ -90,28 +98,31 @@ export function DesignerView() {
   }, [editingModule, createNewModule]);
 
   // Drag handle for code editor resize
-  const handleResizeStart = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    resizing.current = true;
-    const startX = e.clientX;
-    const startWidth = codeWidth;
-    let lastWidth = startWidth;
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      resizing.current = true;
+      const startX = e.clientX;
+      const startWidth = codeWidth;
+      let lastWidth = startWidth;
 
-    const onMove = (ev: PointerEvent) => {
-      if (!resizing.current) return;
-      const delta = startX - ev.clientX;
-      lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
-      setCodeWidth(lastWidth);
-    };
-    const onUp = () => {
-      resizing.current = false;
-      localStorage.setItem("lw-code-width", String(lastWidth));
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [codeWidth]);
+      const onMove = (ev: PointerEvent) => {
+        if (!resizing.current) return;
+        const delta = startX - ev.clientX;
+        lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
+        setCodeWidth(lastWidth);
+      };
+      const onUp = () => {
+        resizing.current = false;
+        localStorage.setItem("spaghetti-code-width", String(lastWidth));
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [codeWidth],
+  );
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -129,7 +140,11 @@ export function DesignerView() {
         style={{ right: codeOpen ? codeWidth + 4 : 4 }}
         title="Toggle Code Editor"
       >
-        <Code size={16} color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"} strokeWidth={1.5} />
+        <Code
+          size={16}
+          color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"}
+          strokeWidth={1.5}
+        />
       </button>
       {/* Code editor panel */}
       {codeOpen && (
@@ -138,7 +153,10 @@ export function DesignerView() {
             onPointerDown={handleResizeStart}
             className="w-1 cursor-col-resize bg-surface-3 shrink-0"
           />
-          <div className="shrink-0 bg-surface-1 flex flex-col" style={{ width: codeWidth }}>
+          <div
+            className="shrink-0 bg-surface-1 flex flex-col"
+            style={{ width: codeWidth }}
+          >
             <CodeEditor />
           </div>
         </>

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "lw-temp",
+      "name": "spaghetti",
       "dependencies": {
         "@monaco-editor/react": "^4.7.0",
         "lucide-react": "^0.577.0",

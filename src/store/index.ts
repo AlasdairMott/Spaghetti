@@ -8,7 +8,11 @@ import { createUiSlice, type UiSlice } from "./uiSlice";
 import { builtinModules } from "../data/builtinModules";
 import { defaultRack, defaultCanvas } from "../data/defaultProject";
 
-export type AppStore = EditorSlice & ModulesSlice & RackSlice & CanvasSlice & UiSlice;
+export type AppStore = EditorSlice &
+  ModulesSlice &
+  RackSlice &
+  CanvasSlice &
+  UiSlice;
 
 export const useAppStore = create<AppStore>()(
   persist(
@@ -20,7 +24,7 @@ export const useAppStore = create<AppStore>()(
       ...createUiSlice(...args),
     }),
     {
-      name: "lw-designer-storage",
+      name: "spaghetti-designer-storage",
       partialize: (state) => ({
         modules: state.modules,
         rack: state.rack,
@@ -34,6 +38,6 @@ export const useAppStore = create<AppStore>()(
           state.canvas = structuredClone(defaultCanvas);
         }
       },
-    }
-  )
+    },
+  ),
 );

@@ -27,7 +27,9 @@ export function CanvasView() {
   const canvasRemovePlacement = useAppStore((s) => s.canvasRemovePlacement);
   const canvasClearWires = useAppStore((s) => s.canvasClearWires);
   const saveModule = useAppStore((s) => s.saveModule);
-  const canvasSelectedPlacementIds = useAppStore((s) => s.canvasSelectedPlacementIds);
+  const canvasSelectedPlacementIds = useAppStore(
+    (s) => s.canvasSelectedPlacementIds,
+  );
   const canvasSelectPlacements = useAppStore((s) => s.canvasSelectPlacements);
   const openModuleForEditing = useAppStore((s) => s.openModuleForEditing);
   const setMode = useAppStore((s) => s.setMode);
@@ -49,31 +51,34 @@ export function CanvasView() {
   // Code editor panel
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeWidth, setCodeWidth] = useState(() => {
-    const saved = localStorage.getItem("lw-code-width");
+    const saved = localStorage.getItem("spaghetti-code-width");
     return saved ? parseInt(saved, 10) || 500 : 500;
   });
   const resizing = useRef(false);
-  const handleResizeStart = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    resizing.current = true;
-    const startX = e.clientX;
-    const startWidth = codeWidth;
-    let lastWidth = startWidth;
-    const onMove = (ev: PointerEvent) => {
-      if (!resizing.current) return;
-      const delta = startX - ev.clientX;
-      lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
-      setCodeWidth(lastWidth);
-    };
-    const onUp = () => {
-      resizing.current = false;
-      localStorage.setItem("lw-code-width", String(lastWidth));
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [codeWidth]);
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      resizing.current = true;
+      const startX = e.clientX;
+      const startWidth = codeWidth;
+      let lastWidth = startWidth;
+      const onMove = (ev: PointerEvent) => {
+        if (!resizing.current) return;
+        const delta = startX - ev.clientX;
+        lastWidth = Math.max(200, Math.min(1200, startWidth + delta));
+        setCodeWidth(lastWidth);
+      };
+      const onUp = () => {
+        resizing.current = false;
+        localStorage.setItem("spaghetti-code-width", String(lastWidth));
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [codeWidth],
+  );
 
   // Hot-repatch wires while audio is running
   const wires = canvas.wires;
@@ -155,7 +160,11 @@ export function CanvasView() {
           }`}
           title="Toggle Code Editor"
         >
-          <Code size={16} color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"} strokeWidth={1.5} />
+          <Code
+            size={16}
+            color={codeOpen ? "var(--color-surface-0)" : "var(--color-text)"}
+            strokeWidth={1.5}
+          />
         </button>
         <ScopePanel />
       </div>
@@ -166,7 +175,10 @@ export function CanvasView() {
             onPointerDown={handleResizeStart}
             className="w-1 cursor-col-resize bg-surface-3 shrink-0"
           />
-          <div className="shrink-0 bg-surface-1 flex flex-col" style={{ width: codeWidth }}>
+          <div
+            className="shrink-0 bg-surface-1 flex flex-col"
+            style={{ width: codeWidth }}
+          >
             <RackCodeEditor />
           </div>
         </>
@@ -241,14 +253,24 @@ export function CanvasView() {
               Module Library
             </div>
             <div className="flex gap-1 mb-2">
-              <SidebarButton onClick={handleImportModuleFromClipboard} className="flex-1 text-[11px]">
+              <SidebarButton
+                onClick={handleImportModuleFromClipboard}
+                className="flex-1 text-[11px]"
+              >
                 <Clipboard size={12} /> Paste
               </SidebarButton>
-              <SidebarButton onClick={handleImportModuleFromFile} className="flex-1 text-[11px]">
+              <SidebarButton
+                onClick={handleImportModuleFromFile}
+                className="flex-1 text-[11px]"
+              >
                 <PackagePlus size={12} /> Import
               </SidebarButton>
             </div>
-            <TagFilter modules={modules} activeTag={libraryTag} onTagChange={setLibraryTag} />
+            <TagFilter
+              modules={modules}
+              activeTag={libraryTag}
+              onTagChange={setLibraryTag}
+            />
             {filteredModules.length === 0 ? (
               <div className="text-xs text-text-faint">
                 {modules.length === 0
@@ -278,7 +300,8 @@ export function CanvasView() {
         )}
 
         <div className="text-[11px] text-text-faint shrink-0">
-          Drag modules from the library. They snap together when close. Click jacks to patch wires.
+          Drag modules from the library. They snap together when close. Click
+          jacks to patch wires.
         </div>
       </div>
     </div>

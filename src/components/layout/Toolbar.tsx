@@ -20,7 +20,9 @@ export function Toolbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleAudio = useCallback(() => { toggleAudio(); }, []);
+  const handleToggleAudio = useCallback(() => {
+    toggleAudio();
+  }, []);
 
   // Spacebar play/pause (ignore when typing in inputs/editors)
   useEffect(() => {
@@ -84,7 +86,7 @@ export function Toolbar() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "lw-project.json";
+    a.download = "spaghetti-project.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -104,7 +106,8 @@ export function Toolbar() {
           alert("Invalid project file.");
           return;
         }
-        if (!confirm("This will replace your current project. Continue?")) return;
+        if (!confirm("This will replace your current project. Continue?"))
+          return;
         if (audioRunning) toggleAudio();
         useAppStore.setState({
           modules: data.modules as Module[],
@@ -120,7 +123,12 @@ export function Toolbar() {
 
   const handleNewProject = () => {
     setMenuOpen(false);
-    if (!confirm("Start a new project? This will replace all modules, rack, and canvas with the built-in defaults.")) return;
+    if (
+      !confirm(
+        "Start a new project? This will replace all modules, rack, and canvas with the built-in defaults.",
+      )
+    )
+      return;
     if (audioRunning) toggleAudio();
     resetProject();
   };
@@ -131,7 +139,8 @@ export function Toolbar() {
     { id: "rack", label: "Rack View" },
   ];
 
-  const menuItemCls = "w-full text-left px-3 py-1.5 text-[13px] bg-transparent border-none cursor-pointer text-text hover:bg-surface-3";
+  const menuItemCls =
+    "w-full text-left px-3 py-1.5 text-[13px] bg-transparent border-none cursor-pointer text-text hover:bg-surface-3";
 
   return (
     <div className="flex items-center gap-3 px-4 py-1.5 bg-surface-1 border-b border-border">
@@ -169,7 +178,11 @@ export function Toolbar() {
         }`}
         title={audioRunning ? "Stop Audio (Space)" : "Play Audio (Space)"}
       >
-        {audioRunning ? <Square size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+        {audioRunning ? (
+          <Square size={14} fill="currentColor" />
+        ) : (
+          <Play size={14} fill="currentColor" />
+        )}
       </button>
 
       <div className="flex gap-0.5">
@@ -206,9 +219,13 @@ export function Toolbar() {
               onChange={handleLoad}
               defaultValue=""
             >
-              <option value="" disabled>Load Module...</option>
+              <option value="" disabled>
+                Load Module...
+              </option>
               {modules.map((m) => (
-                <option key={m.id} value={m.id}>{m.name} ({m.widthHP}HP)</option>
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.widthHP}HP)
+                </option>
               ))}
             </select>
           )}
