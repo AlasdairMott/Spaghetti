@@ -14,6 +14,7 @@ function resolveEndpoint(
   endpoint: RackWireEndpoint,
   placements: RackPlacement[],
   modules: Module[],
+  dragOverride?: RackDragOverride | null,
 ): { x: number; y: number } | null {
   const placement = placements.find((p) => p.id === endpoint.placementId);
   if (!placement) return null;
@@ -22,8 +23,14 @@ function resolveEndpoint(
   const comp = mod.components.find((c) => c.id === endpoint.componentId);
   if (!comp) return null;
   const mm = gridToMm(comp.position);
-  const modX = placement.positionHP * HP_WIDTH;
-  const rowY = placement.row * ROW_HEIGHT + RAIL_HEIGHT;
+  const posHP = (dragOverride?.placementId === endpoint.placementId)
+    ? dragOverride.positionHP
+    : placement.positionHP;
+  const row = (dragOverride?.placementId === endpoint.placementId)
+    ? dragOverride.row
+    : placement.row;
+  const modX = posHP * HP_WIDTH;
+  const rowY = row * ROW_HEIGHT + RAIL_HEIGHT;
   return { x: modX + mm.x, y: rowY + mm.y };
 }
 
@@ -88,11 +95,12 @@ interface WireLineProps {
   placements: RackPlacement[];
   modules: Module[];
   onClick: (wireId: string, shiftKey: boolean) => void;
+  dragOverride?: RackDragOverride | null;
 }
 
-const WireLine = memo(function WireLine({ wire, isSelected, placements, modules, onClick }: WireLineProps) {
-  const from = resolveEndpoint(wire.from, placements, modules);
-  const to = resolveEndpoint(wire.to, placements, modules);
+const WireLine = memo(function WireLine({ wire, isSelected, placements, modules, onClick, dragOverride }: WireLineProps) {
+  const from = resolveEndpoint(wire.from, placements, modules, dragOverride);
+  const to = resolveEndpoint(wire.to, placements, modules, dragOverride);
   if (!from || !to) return null;
 
   const path = catenaryPath(from.x, from.y, to.x, to.y);
@@ -168,20 +176,11 @@ export interface RackDragOverride {
 
 export function WireLayer({ dragOverride }: { dragOverride?: RackDragOverride | null }) {
   const wires = useAppStore((s) => s.rack.wires ?? EMPTY_WIRES);
-  const storePlacements = useAppStore((s) => s.rack.placements);
+  const placements = useAppStore((s) => s.rack.placements);
   const modules = useAppStore((s) => s.modules);
   const selectedWireIds = useAppStore((s) => s.selectedWireIds);
   const selectWires = useAppStore((s) => s.selectWires);
   const selectPlacements = useAppStore((s) => s.selectPlacements);
-
-  // Apply drag override to placements so wires follow the dragged module
-  const placements = dragOverride
-    ? storePlacements.map((p) =>
-        p.id === dragOverride.placementId
-          ? { ...p, positionHP: dragOverride.positionHP, row: dragOverride.row }
-          : p,
-      )
-    : storePlacements;
 
   const handleWireClick = (wireId: string, shiftKey: boolean) => {
     // selectPlacements clears selectedWireIds in the store, so call it first
@@ -199,16 +198,25 @@ export function WireLayer({ dragOverride }: { dragOverride?: RackDragOverride | 
 
   return (
     <g>
-      {wires.map((wire) => (
-        <WireLine
-          key={wire.id}
-          wire={wire}
-          isSelected={selectedWireIds.includes(wire.id)}
-          placements={placements}
-          modules={modules}
-          onClick={handleWireClick}
-        />
-      ))}
+      {wires.map((wire) => {
+        // Only pass dragOverride to wires that actually touch the dragged module;
+        // other WireLines keep stable props and stay memoised.
+        const wireOverride = dragOverride && (
+          wire.from.placementId === dragOverride.placementId ||
+          wire.to.placementId === dragOverride.placementId
+        ) ? dragOverride : null;
+        return (
+          <WireLine
+            key={wire.id}
+            wire={wire}
+            isSelected={selectedWireIds.includes(wire.id)}
+            placements={placements}
+            modules={modules}
+            onClick={handleWireClick}
+            dragOverride={wireOverride}
+          />
+        );
+      })}
     </g>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import {
   updateCanvasAudioWires,
+  updateCanvasAudioPlacements,
   updateCanvasAudioKnob,
   updateCanvasAudioButton,
 } from "../../audio/singleton";
@@ -85,6 +86,12 @@ export function CanvasView() {
   useEffect(() => {
     updateCanvasAudioWires();
   }, [wires]);
+
+  // Hot-add new placements while audio is running
+  const placements = canvas.placements;
+  useEffect(() => {
+    updateCanvasAudioPlacements();
+  }, [placements]);
 
   const handleKnobChange = useCallback(
     (placementId: string, componentId: string, angle: number) => {

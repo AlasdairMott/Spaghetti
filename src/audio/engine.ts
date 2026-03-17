@@ -309,6 +309,74 @@ export class AudioEngine {
     this.sendRouting(rack);
   }
 
+  /** Check if a placement is already tracked by this engine instance */
+  hasPlacement(placementId: string): boolean {
+    return this.placementModuleMap.has(placementId);
+  }
+
+  /**
+   * Hot-add a new placement while audio is running.
+   * Returns true if successful, false if the module type isn't registered
+   * in the worklet (the caller should restart the engine in that case).
+   */
+  addPlacement(placement: { id: string; moduleId: string }, rack: Rack, modules: Module[]): boolean {
+    if (!this.isRunning || !this.megaNode) return false;
+    if (this.placementModuleMap.has(placement.id)) return true; // already known
+
+    const mod = modules.find((m) => m.id === placement.moduleId);
+    if (!mod || !mod.code) return false;
+
+    // Module type must already be registered in the worklet's _moduleTypes
+    if (!this.moduleJackInfo.has(mod.id)) return false;
+
+    const jacks = this.moduleJackInfo.get(mod.id)!;
+    this.placementModuleMap.set(placement.id, mod.id);
+
+    const sorted = [...mod.components].sort((a, b) => {
+      const ap = gridToMm(a.position);
+      const bp = gridToMm(b.position);
+      return ap.y - bp.y || ap.x - bp.x;
+    });
+
+    const initialParams: Record<string, number> = {};
+    for (const comp of sorted) {
+      if (comp.kind === "pot") {
+        const knob = (rack.knobStates ?? []).find(
+          (k) => k.placementId === placement.id && k.componentId === comp.id,
+        );
+        const key = comp.ref || comp.label || comp.id;
+        initialParams[key] = (knob?.angle ?? 150) / 300;
+      }
+    }
+
+    const initialButtons: Record<string, boolean> = {};
+    for (const comp of sorted) {
+      if (comp.kind === "button") {
+        const btn = (rack.buttonStates ?? []).find(
+          (b) => b.placementId === placement.id && b.componentId === comp.id,
+        );
+        const key = comp.ref || comp.label || comp.id;
+        initialButtons[key] = btn?.pressed ?? false;
+      }
+    }
+
+    this.megaNode.port.postMessage({
+      type: "addPlacement",
+      placementId: placement.id,
+      moduleId: mod.id,
+      numInputs: jacks.inputJackIds.length,
+      numOutputs: jacks.outputJackIds.length,
+      inputNames: jacks.inputJackNames,
+      outputNames: jacks.outputJackNames,
+      initialParams,
+      initialButtons,
+    });
+
+    this.sendRouting(rack);
+    this.sendHeadphones(rack);
+    return true;
+  }
+
   updateKnobParam(placementId: string, componentId: string, angle: number, modules: Module[]) {
     if (!this.megaNode) return;
 

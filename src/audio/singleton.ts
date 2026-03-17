@@ -94,6 +94,72 @@ export function updateCanvasAudioWires() {
   }
 }
 
+/** Restart the engine with new rack data, preserving the fault handler. */
+async function restartEngine(rackData: Rack) {
+  const prevOnFault = engine?.onFault;
+  engine?.stop();
+  engine = null;
+  const e = new AudioEngine();
+  if (prevOnFault) e.onFault = prevOnFault;
+  try {
+    await e.start(rackData, useAppStore.getState().modules);
+    engine = e;
+    useAppStore.getState().setAudioRunning(true);
+  } catch {
+    e.stop();
+    useAppStore.getState().setAudioRunning(false);
+  }
+}
+
+/** Guard against concurrent placement-update calls racing each other. */
+let placementUpdateInFlight = false;
+
+/**
+ * Hot-add any new rack placements while audio is running.
+ * If a placement uses a module type not yet registered in the worklet,
+ * the engine is restarted so it can compile in the new type.
+ */
+export async function updateAudioPlacements() {
+  if (placementUpdateInFlight || !engine?.isRunning || activeSource !== "rack") return;
+  placementUpdateInFlight = true;
+  try {
+    const state = useAppStore.getState();
+    let needsRestart = false;
+    for (const placement of state.rack.placements) {
+      if (!engine.hasPlacement(placement.id)) {
+        const ok = engine.addPlacement(placement, state.rack, state.modules);
+        if (!ok) { needsRestart = true; break; }
+      }
+    }
+    if (needsRestart) await restartEngine(useAppStore.getState().rack);
+  } finally {
+    placementUpdateInFlight = false;
+  }
+}
+
+/**
+ * Hot-add any new canvas placements while audio is running.
+ * Restarts if a new module type is encountered.
+ */
+export async function updateCanvasAudioPlacements() {
+  if (placementUpdateInFlight || !engine?.isRunning || activeSource !== "canvas") return;
+  placementUpdateInFlight = true;
+  try {
+    const state = useAppStore.getState();
+    const rackData = canvasToRack(state.canvas);
+    let needsRestart = false;
+    for (const placement of state.canvas.placements) {
+      if (!engine.hasPlacement(placement.id)) {
+        const ok = engine.addPlacement(placement, rackData, state.modules);
+        if (!ok) { needsRestart = true; break; }
+      }
+    }
+    if (needsRestart) await restartEngine(canvasToRack(useAppStore.getState().canvas));
+  } finally {
+    placementUpdateInFlight = false;
+  }
+}
+
 export function updateAudioKnob(
   placementId: string,
   componentId: string,

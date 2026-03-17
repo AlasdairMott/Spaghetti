@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   updateAudioWires,
+  updateAudioPlacements,
   updateAudioKnob,
   updateAudioButton,
 } from "../../audio/singleton";
@@ -95,6 +96,12 @@ export function RackView() {
   useEffect(() => {
     updateAudioWires();
   }, [wires]);
+
+  // Hot-add new placements while audio is running
+  const placements = rack.placements;
+  useEffect(() => {
+    updateAudioPlacements();
+  }, [placements]);
 
   const handleKnobChange = useCallback(
     (placementId: string, componentId: string, angle: number) => {
