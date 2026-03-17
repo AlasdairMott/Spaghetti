@@ -15,7 +15,11 @@ import { ButtonShape } from "../designer/shapes/ButtonShape";
 import { LedShape } from "../designer/shapes/LedShape";
 import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
-import { CanvasWireLayer, PreviewWire, resolveCanvasEndpoint, type CanvasDragOverride } from "./CanvasWireLayer";
+import {
+  CanvasWireLayer,
+  PreviewWire,
+  resolveCanvasEndpoint,
+} from "./CanvasWireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import { snapPosition } from "../../store/canvasSlice";
 import type { RackWireEndpoint } from "../../models/types";
@@ -46,11 +50,22 @@ interface WireDragState {
 }
 
 interface CanvasCanvasProps {
-  onKnobChange?: (placementId: string, componentId: string, angle: number) => void;
-  onButtonToggle?: (placementId: string, componentId: string, pressed: boolean) => void;
+  onKnobChange?: (
+    placementId: string,
+    componentId: string,
+    angle: number,
+  ) => void;
+  onButtonToggle?: (
+    placementId: string,
+    componentId: string,
+    pressed: boolean,
+  ) => void;
 }
 
-export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps) {
+export function CanvasCanvas({
+  onKnobChange,
+  onButtonToggle,
+}: CanvasCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const canvas = useAppStore((s) => s.canvas);
   const modules = useAppStore((s) => s.modules);
@@ -61,11 +76,15 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   const canvasRemoveWire = useAppStore((s) => s.canvasRemoveWire);
   const canvasSelectWires = useAppStore((s) => s.canvasSelectWires);
   const canvasSelectedWireIds = useAppStore((s) => s.canvasSelectedWireIds);
-  const canvasSelectedPlacementIds = useAppStore((s) => s.canvasSelectedPlacementIds);
+  const canvasSelectedPlacementIds = useAppStore(
+    (s) => s.canvasSelectedPlacementIds,
+  );
   const canvasSelectPlacements = useAppStore((s) => s.canvasSelectPlacements);
   const canvasSetKnobAngle = useAppStore((s) => s.canvasSetKnobAngle);
   const canvasToggleButton = useAppStore((s) => s.canvasToggleButton);
-  const canvasUpdateWireEndpoint = useAppStore((s) => s.canvasUpdateWireEndpoint);
+  const canvasUpdateWireEndpoint = useAppStore(
+    (s) => s.canvasUpdateWireEndpoint,
+  );
   const openModuleForEditing = useAppStore((s) => s.openModuleForEditing);
   const setMode = useAppStore((s) => s.setMode);
   const renderMode = useAppStore((s) => s.renderMode);
@@ -85,11 +104,15 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   // Pan / zoom
   const savedCanvasView = useAppStore((s) => s.canvasView);
   const setCanvasView = useAppStore((s) => s.setCanvasView);
-  const [view, setView] = useState(() => savedCanvasView ?? { zoom: 1, panX: 0, panY: 0 });
+  const [view, setView] = useState(
+    () => savedCanvasView ?? { zoom: 1, panX: 0, panY: 0 },
+  );
   const viewRef = useRef(view);
 
   useEffect(() => {
-    return () => { setCanvasView(viewRef.current); };
+    return () => {
+      setCanvasView(viewRef.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rafId = useRef(0);
@@ -153,7 +176,10 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   }, [scheduleViewUpdate]);
 
   const [drag, setDrag] = useState<DragState | null>(null);
-  const [dragPreview, setDragPreview] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [dragPreview, setDragPreview] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
 
   // Library drag preview
   const [libDrag, setLibDrag] = useState<{
@@ -163,7 +189,10 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   } | null>(null);
 
   const [wireStart, setWireStart] = useState<RackWireEndpoint | null>(null);
-  const [wirePreviewEnd, setWirePreviewEnd] = useState<{ x: number; y: number } | null>(null);
+  const [wirePreviewEnd, setWirePreviewEnd] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [knobDrag, setKnobDrag] = useState<KnobDragState | null>(null);
   const knobDragAngleRef = useRef<number>(150);
 
@@ -174,7 +203,10 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
     componentId: string;
   } | null>(null);
   const [wireDrag, setWireDrag] = useState<WireDragState | null>(null);
-  const [wireDragEnd, setWireDragEnd] = useState<{ x: number; y: number } | null>(null);
+  const [wireDragEnd, setWireDragEnd] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Module search popup (double-click to add)
   const [searchPopup, setSearchPopup] = useState<{
@@ -222,7 +254,8 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
           canvasSelectWires([]);
         }
         if (canvasSelectedPlacementIds.length > 0) {
-          for (const id of canvasSelectedPlacementIds) canvasRemovePlacement(id);
+          for (const id of canvasSelectedPlacementIds)
+            canvasRemovePlacement(id);
           canvasSelectPlacements([]);
         }
       }
@@ -283,7 +316,11 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
     // Center on cursor
     const x = pt.x - (mod.widthHP * HP_WIDTH) / 2;
     const y = pt.y - PANEL_HEIGHT / 2;
-    if (!libDrag || Math.abs(x - libDrag.x) > 1 || Math.abs(y - libDrag.y) > 1) {
+    if (
+      !libDrag ||
+      Math.abs(x - libDrag.x) > 1 ||
+      Math.abs(y - libDrag.y) > 1
+    ) {
       setLibDrag({ moduleId, x, y });
     }
   };
@@ -302,7 +339,11 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
     const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
     const mod = modules.find((m) => m.id === moduleId);
     if (!mod) return;
-    canvasPlaceModule(moduleId, pt.x - (mod.widthHP * HP_WIDTH) / 2, pt.y - PANEL_HEIGHT / 2);
+    canvasPlaceModule(
+      moduleId,
+      pt.x - (mod.widthHP * HP_WIDTH) / 2,
+      pt.y - PANEL_HEIGHT / 2,
+    );
   };
 
   const handleModulePointerDown = useCallback(
@@ -348,9 +389,16 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
       for (const wire of wires) {
         for (const end of ["from", "to"] as const) {
           const ep = wire[end];
-          if (ep.placementId === placementId && ep.componentId === componentId) {
+          if (
+            ep.placementId === placementId &&
+            ep.componentId === componentId
+          ) {
             const otherEnd = end === "from" ? "to" : "from";
-            const anchorPos = resolveCanvasEndpoint(wire[otherEnd], state.canvas.placements, state.modules);
+            const anchorPos = resolveCanvasEndpoint(
+              wire[otherEnd],
+              state.canvas.placements,
+              state.modules,
+            );
             if (anchorPos) {
               setWireDrag({
                 wireId: wire.id,
@@ -385,8 +433,12 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
         const getWidth = (id: string) =>
           (modules.find((m) => m.id === id)?.widthHP ?? 0) * HP_WIDTH;
         const snapped = snapPosition(
-          rawX, rawY, mod.widthHP * HP_WIDTH,
-          canvas.placements, drag.placementId, getWidth,
+          rawX,
+          rawY,
+          mod.widthHP * HP_WIDTH,
+          canvas.placements,
+          drag.placementId,
+          getWidth,
         );
         if (snapped.x !== dragPreview.x || snapped.y !== dragPreview.y) {
           didDragRef.current = true;
@@ -405,17 +457,35 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
       }
       if (knobDrag) {
         const deltaY = knobDrag.startY - e.clientY;
-        const newAngle = Math.max(0, Math.min(300, knobDrag.startAngle + deltaY * 1.5));
+        const newAngle = Math.max(
+          0,
+          Math.min(300, knobDrag.startAngle + deltaY * 1.5),
+        );
         knobDragAngleRef.current = newAngle;
         onKnobChange?.(knobDrag.placementId, knobDrag.componentId, newAngle);
-        canvasSetKnobAngle(knobDrag.placementId, knobDrag.componentId, newAngle);
+        canvasSetKnobAngle(
+          knobDrag.placementId,
+          knobDrag.componentId,
+          newAngle,
+        );
       }
       if (!drag && !wireStart && !wireDrag && !knobDrag && svgRef.current) {
         const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
         setHoveredJack(findNearestJack(pt.x, pt.y));
       }
     },
-    [drag, dragPreview, modules, canvas.placements, wireStart, knobDrag, onKnobChange, canvasSetKnobAngle, wireDrag, findNearestJack],
+    [
+      drag,
+      dragPreview,
+      modules,
+      canvas.placements,
+      wireStart,
+      knobDrag,
+      onKnobChange,
+      canvasSetKnobAngle,
+      wireDrag,
+      findNearestJack,
+    ],
   );
 
   const handlePointerUp = useCallback(
@@ -450,7 +520,10 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
         const jack = findNearestJack(pt.x, pt.y);
         if (jack) {
           const anchor = wireDrag.anchorEndpoint;
-          if (jack.placementId !== anchor.placementId || jack.componentId !== anchor.componentId) {
+          if (
+            jack.placementId !== anchor.placementId ||
+            jack.componentId !== anchor.componentId
+          ) {
             canvasUpdateWireEndpoint(wireDrag.wireId, wireDrag.dragEnd, jack);
           }
         }
@@ -462,7 +535,13 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
       if (wireStart && svgRef.current) {
         const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
         const jack = findNearestJack(pt.x, pt.y);
-        if (jack && !(jack.placementId === wireStart.placementId && jack.componentId === wireStart.componentId)) {
+        if (
+          jack &&
+          !(
+            jack.placementId === wireStart.placementId &&
+            jack.componentId === wireStart.componentId
+          )
+        ) {
           canvasAddWire(wireStart, jack);
         }
         setWireStart(null);
@@ -473,11 +552,27 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
       canvasSelectWires([]);
       canvasSelectPlacements([]);
     },
-    [drag, dragPreview, canvasMoveModule, knobDrag, canvasSelectWires, canvasSelectPlacements, wireDrag, canvasUpdateWireEndpoint, findNearestJack, wireStart, canvasAddWire],
+    [
+      drag,
+      dragPreview,
+      canvasMoveModule,
+      knobDrag,
+      canvasSelectWires,
+      canvasSelectPlacements,
+      wireDrag,
+      canvasUpdateWireEndpoint,
+      findNearestJack,
+      wireStart,
+      canvasAddWire,
+    ],
   );
 
   const handlePotPointerDown = useCallback(
-    (e: React.PointerEvent<SVGElement>, placementId: string, componentId: string) => {
+    (
+      e: React.PointerEvent<SVGElement>,
+      placementId: string,
+      componentId: string,
+    ) => {
       if (e.button !== 0) return;
       e.stopPropagation();
       const knobStates = canvas.knobStates ?? [];
@@ -495,9 +590,11 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   const getKnobAngle = useCallback(
     (placementId: string, componentId: string): number => {
       const knobStates = canvas.knobStates ?? [];
-      return knobStates.find(
-        (k) => k.placementId === placementId && k.componentId === componentId,
-      )?.angle ?? 150;
+      return (
+        knobStates.find(
+          (k) => k.placementId === placementId && k.componentId === componentId,
+        )?.angle ?? 150
+      );
     },
     [canvas.knobStates],
   );
@@ -505,17 +602,27 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
   const isButtonPressed = useCallback(
     (placementId: string, componentId: string): boolean => {
       const buttonStates = canvas.buttonStates ?? [];
-      return buttonStates.find(
-        (b) => b.placementId === placementId && b.componentId === componentId,
-      )?.pressed ?? false;
+      return (
+        buttonStates.find(
+          (b) => b.placementId === placementId && b.componentId === componentId,
+        )?.pressed ?? false
+      );
     },
     [canvas.buttonStates],
   );
 
-  const cursor = wireStart || wireDrag ? "crosshair" : knobDrag ? "ns-resize" : "default";
+  const cursor =
+    wireStart || wireDrag ? "crosshair" : knobDrag ? "ns-resize" : "default";
 
   return (
-    <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        position: "relative",
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <div style={{ position: "relative", flex: 1, display: "flex" }}>
         <RenderModeToggle />
         <svg
@@ -529,14 +636,22 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
           onDoubleClick={(e) => {
             if (!svgRef.current) return;
             const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
-            setSearchPopup({ screenX: e.clientX, screenY: e.clientY, svgX: pt.x, svgY: pt.y });
+            setSearchPopup({
+              screenX: e.clientX,
+              screenY: e.clientY,
+              svgX: pt.x,
+              svgY: pt.y,
+            });
           }}
           onPointerDown={(e) => {
             if (e.button === 1) {
               e.preventDefault();
               isPanning.current = true;
               panStart.current = { x: e.clientX, y: e.clientY };
-              panOffsetStart.current = { x: viewRef.current.panX, y: viewRef.current.panY };
+              panOffsetStart.current = {
+                x: viewRef.current.panX,
+                y: viewRef.current.panY,
+              };
               e.currentTarget.setPointerCapture(e.pointerId);
             }
           }}
@@ -547,8 +662,12 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                 const v = viewRef.current;
                 scheduleViewUpdate({
                   zoom: v.zoom,
-                  panX: panOffsetStart.current.x - (e.clientX - panStart.current.x) / ctm.a,
-                  panY: panOffsetStart.current.y - (e.clientY - panStart.current.y) / ctm.d,
+                  panX:
+                    panOffsetStart.current.x -
+                    (e.clientX - panStart.current.x) / ctm.a,
+                  panY:
+                    panOffsetStart.current.y -
+                    (e.clientY - panStart.current.y) / ctm.d,
                 });
               }
               return;
@@ -566,18 +685,36 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
         >
           {/* Subtle dot grid for orientation */}
           <defs>
-            <pattern id="canvasGrid" width={HP_WIDTH} height={HP_WIDTH} patternUnits="userSpaceOnUse">
-              <circle cx={HP_WIDTH / 2} cy={HP_WIDTH / 2} r={0.15} fill={isLight ? "#bbb" : "#333"} />
+            <pattern
+              id="canvasGrid"
+              width={HP_WIDTH}
+              height={HP_WIDTH}
+              patternUnits="userSpaceOnUse"
+            >
+              <circle
+                cx={HP_WIDTH / 2}
+                cy={HP_WIDTH / 2}
+                r={0.15}
+                fill={isLight ? "#bbb" : "#333"}
+              />
             </pattern>
           </defs>
-          <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="url(#canvasGrid)" />
+          <rect
+            x={vbX}
+            y={vbY}
+            width={vbW}
+            height={vbH}
+            fill="url(#canvasGrid)"
+          />
 
           {/* Modules */}
           {canvas.placements.map((placement) => {
             const mod = modules.find((m) => m.id === placement.moduleId);
             if (!mod) return null;
             const isDragging = drag?.placementId === placement.id;
-            const isSelected = canvasSelectedPlacementIds.includes(placement.id);
+            const isSelected = canvasSelectedPlacementIds.includes(
+              placement.id,
+            );
             const displayX = isDragging ? dragPreview.x : placement.x;
             const displayY = isDragging ? dragPreview.y : placement.y;
             const modWidth = mod.widthHP * HP_WIDTH;
@@ -592,10 +729,20 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                   setMode("designer");
                 }}
                 onPointerDown={(e) =>
-                  handleModulePointerDown(e, placement.id, placement.moduleId, placement.x, placement.y)
+                  handleModulePointerDown(
+                    e,
+                    placement.id,
+                    placement.moduleId,
+                    placement.x,
+                    placement.y,
+                  )
                 }
                 style={{
-                  cursor: isDragging ? "grabbing" : isSelected ? "grab" : "pointer",
+                  cursor: isDragging
+                    ? "grabbing"
+                    : isSelected
+                      ? "grab"
+                      : "pointer",
                 }}
               >
                 <rect
@@ -604,29 +751,49 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                   width={modWidth}
                   height={PANEL_HEIGHT}
                   fill={panelBg}
-                  stroke={isDragging ? "#fa4" : isSelected ? "#4af" : panelStroke}
+                  stroke={
+                    isDragging ? "#fa4" : isSelected ? "#4af" : panelStroke
+                  }
                   strokeWidth={isSelected ? 0.6 : 0.2}
                   rx={0.5}
                 />
                 <line
-                  x1={EDGE_INSET} y1={topLineY} x2={modWidth - EDGE_INSET} y2={topLineY}
-                  stroke={lineColor} strokeWidth={0.2} strokeLinecap="round"
+                  x1={EDGE_INSET}
+                  y1={topLineY}
+                  x2={modWidth - EDGE_INSET}
+                  y2={topLineY}
+                  stroke={lineColor}
+                  strokeWidth={0.2}
+                  strokeLinecap="round"
                 />
                 <line
-                  x1={EDGE_INSET} y1={bottomLineY} x2={modWidth - EDGE_INSET} y2={bottomLineY}
-                  stroke={lineColor} strokeWidth={0.2} strokeLinecap="round"
+                  x1={EDGE_INSET}
+                  y1={bottomLineY}
+                  x2={modWidth - EDGE_INSET}
+                  y2={bottomLineY}
+                  stroke={lineColor}
+                  strokeWidth={0.2}
+                  strokeLinecap="round"
                 />
 
                 {mod.components.map((comp) => {
                   const pos = gridToMm(comp.position);
                   const buttonLeds = comp.buttonLedCount ?? 0;
-                  const hasButtonLeds = comp.kind === "button" && buttonLeds > 0;
+                  const hasButtonLeds =
+                    comp.kind === "button" && buttonLeds > 0;
                   const labelY =
-                    comp.kind === "jack" ? -5
-                    : comp.kind === "pot" ? -8
-                    : hasButtonLeds ? 8 : -5;
+                    comp.kind === "jack"
+                      ? -5
+                      : comp.kind === "pot"
+                        ? -8
+                        : hasButtonLeds
+                          ? 8
+                          : -5;
                   return (
-                    <g key={comp.id} transform={`translate(${pos.x}, ${pos.y})`}>
+                    <g
+                      key={comp.id}
+                      transform={`translate(${pos.x}, ${pos.y})`}
+                    >
                       {comp.kind === "jack" ? (
                         <g pointerEvents="none">
                           <JackShape stroke={compStroke} />
@@ -634,48 +801,90 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                       ) : comp.kind === "pot" ? (
                         <g
                           style={{ cursor: "ns-resize" }}
-                          onPointerDown={(e) => handlePotPointerDown(e, placement.id, comp.id)}
+                          onPointerDown={(e) =>
+                            handlePotPointerDown(e, placement.id, comp.id)
+                          }
                           onDoubleClick={(e) => {
                             e.stopPropagation();
                             canvasSetKnobAngle(placement.id, comp.id, 150);
                             onKnobChange?.(placement.id, comp.id, 150);
                           }}
                         >
-                          <PotShape stroke={compStroke} knobAngle={getKnobAngle(placement.id, comp.id)} />
-                          <circle r={7} fill="transparent" pointerEvents="all" />
+                          <PotShape
+                            stroke={compStroke}
+                            knobAngle={getKnobAngle(placement.id, comp.id)}
+                          />
+                          <circle
+                            r={7}
+                            fill="transparent"
+                            pointerEvents="all"
+                          />
                         </g>
                       ) : hasButtonLeds ? (
                         <g
                           style={{ cursor: "pointer" }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            const newPressed = !isButtonPressed(placement.id, comp.id);
+                            const newPressed = !isButtonPressed(
+                              placement.id,
+                              comp.id,
+                            );
                             canvasToggleButton(placement.id, comp.id);
                             onButtonToggle?.(placement.id, comp.id, newPressed);
                           }}
                         >
-                          {(buttonLeds === 1 ? [0] : buttonLeds === 2 ? [-2, 2] : [-2.5, 0, 2.5]).map((lx, i) => (
+                          {(buttonLeds === 1
+                            ? [0]
+                            : buttonLeds === 2
+                              ? [-2, 2]
+                              : [-2.5, 0, 2.5]
+                          ).map((lx, i) => (
                             <g key={i} transform={`translate(${lx}, -2)`}>
-                              <LedShape lit={isButtonPressed(placement.id, comp.id)} />
+                              <LedShape
+                                lit={isButtonPressed(placement.id, comp.id)}
+                              />
                             </g>
                           ))}
                           <g transform="translate(0, 2)">
                             <ButtonShape stroke={compStroke} />
                           </g>
-                          <rect x={-4} y={-5} width={8} height={10} fill="transparent" pointerEvents="all" />
+                          <rect
+                            x={-4}
+                            y={-5}
+                            width={8}
+                            height={10}
+                            fill="transparent"
+                            pointerEvents="all"
+                          />
                         </g>
                       ) : (
                         <g
                           style={{ cursor: "pointer" }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            const newPressed = !isButtonPressed(placement.id, comp.id);
+                            const newPressed = !isButtonPressed(
+                              placement.id,
+                              comp.id,
+                            );
                             canvasToggleButton(placement.id, comp.id);
                             onButtonToggle?.(placement.id, comp.id, newPressed);
                           }}
                         >
-                          <ButtonShape stroke={isButtonPressed(placement.id, comp.id) ? "#aaf" : compStroke} />
-                          <rect x={-3} y={-3} width={6} height={6} fill="transparent" pointerEvents="all" />
+                          <ButtonShape
+                            stroke={
+                              isButtonPressed(placement.id, comp.id)
+                                ? "#aaf"
+                                : compStroke
+                            }
+                          />
+                          <rect
+                            x={-3}
+                            y={-3}
+                            width={6}
+                            height={6}
+                            fill="transparent"
+                            pointerEvents="all"
+                          />
                         </g>
                       )}
                       {comp.kind === "jack" && comp.hasLed && (
@@ -701,7 +910,9 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                   const cx2 = conn.to.x - cux * eo;
                   const cy2 = conn.to.y - cuy * eo;
                   const isArr = conn.kind === "arrow";
-                  const aH = 1.5, aW = 0.75, aG = 0.8;
+                  const aH = 1.5,
+                    aW = 0.75,
+                    aG = 0.8;
                   const leX = isArr ? cx2 - cux * (aH + aG) : cx2;
                   const leY = isArr ? cy2 - cuy * (aH + aG) : cy2;
                   const bX = cx2 - cux * aH;
@@ -710,17 +921,32 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                   const pY = cux * aW;
                   return (
                     <g key={conn.id}>
-                      <line x1={cx1} y1={cy1} x2={leX} y2={leY} stroke={lineColor} strokeWidth={0.2} />
+                      <line
+                        x1={cx1}
+                        y1={cy1}
+                        x2={leX}
+                        y2={leY}
+                        stroke={lineColor}
+                        strokeWidth={0.2}
+                      />
                       {isArr && (
-                        <polygon points={`${cx2},${cy2} ${bX + pX},${bY + pY} ${bX - pX},${bY - pY}`} fill={lineColor} />
+                        <polygon
+                          points={`${cx2},${cy2} ${bX + pX},${bY + pY} ${bX - pX},${bY - pY}`}
+                          fill={lineColor}
+                        />
                       )}
                       {conn.label && (
                         <text
                           x={(cx1 + leX) / 2 + (clen > 0 ? -cuy * 2 : 2)}
                           y={(cy1 + leY) / 2 + (clen > 0 ? cux * 2 : 0)}
-                          textAnchor="middle" dominantBaseline="central"
-                          fill={textColor} fontSize={2.5}
-                          style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill={textColor}
+                          fontSize={2.5}
+                          style={{
+                            userSelect: "none",
+                            fontFamily: "Plus Jakarta Sans",
+                          }}
                         >
                           {conn.label}
                         </text>
@@ -730,9 +956,15 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                 })}
 
                 <text
-                  x={modWidth / 2} y={6} textAnchor="middle"
-                  fill={textColor} fontSize={3}
-                  style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
+                  x={modWidth / 2}
+                  y={6}
+                  textAnchor="middle"
+                  fill={textColor}
+                  fontSize={3}
+                  style={{
+                    userSelect: "none",
+                    fontFamily: "Plus Jakarta Sans",
+                  }}
                 >
                   {mod.name}
                 </text>
@@ -740,7 +972,17 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
             );
           })}
 
-          <CanvasWireLayer dragOverride={drag ? { placementId: drag.placementId, x: dragPreview.x, y: dragPreview.y } : null} />
+          <CanvasWireLayer
+            dragOverride={
+              drag
+                ? {
+                    placementId: drag.placementId,
+                    x: dragPreview.x,
+                    y: dragPreview.y,
+                  }
+                : null
+            }
+          />
 
           {/* Jack hit targets above wires */}
           {canvas.placements.map((placement) => {
@@ -760,11 +1002,20 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
                   <g
                     key={`jhit-${placement.id}-${comp.id}`}
                     transform={`translate(${displayX + pos.x}, ${displayY + pos.y})`}
-                    onPointerDown={(e) => handleJackPointerDown(e, placement.id, comp.id)}
+                    onPointerDown={(e) =>
+                      handleJackPointerDown(e, placement.id, comp.id)
+                    }
                     style={{ cursor: "crosshair" }}
                   >
                     {isHovered && (
-                      <circle r={4.5} fill="none" stroke="#4af" strokeWidth={0.6} opacity={0.8} pointerEvents="none" />
+                      <circle
+                        r={4.5}
+                        fill="none"
+                        stroke="#4af"
+                        strokeWidth={0.6}
+                        opacity={0.8}
+                        pointerEvents="none"
+                      />
                     )}
                     <circle r={5} fill="transparent" pointerEvents="all" />
                   </g>
@@ -773,27 +1024,45 @@ export function CanvasCanvas({ onKnobChange, onButtonToggle }: CanvasCanvasProps
           })}
 
           {wireStart && wireStartPos && wirePreviewEnd && (
-            <PreviewWire fromX={wireStartPos.x} fromY={wireStartPos.y} toX={wirePreviewEnd.x} toY={wirePreviewEnd.y} color="#4af" />
+            <PreviewWire
+              fromX={wireStartPos.x}
+              fromY={wireStartPos.y}
+              toX={wirePreviewEnd.x}
+              toY={wirePreviewEnd.y}
+              color="#4af"
+            />
           )}
           {wireDrag && wireDragEnd && (
-            <PreviewWire fromX={wireDrag.anchorPos.x} fromY={wireDrag.anchorPos.y} toX={wireDragEnd.x} toY={wireDragEnd.y} color={wireDrag.color} />
+            <PreviewWire
+              fromX={wireDrag.anchorPos.x}
+              fromY={wireDrag.anchorPos.y}
+              toX={wireDragEnd.x}
+              toY={wireDragEnd.y}
+              color={wireDrag.color}
+            />
           )}
 
           {/* Library drag ghost preview */}
-          {libDrag && (() => {
-            const mod = modules.find((m) => m.id === libDrag.moduleId);
-            if (!mod) return null;
-            const ghostW = mod.widthHP * HP_WIDTH;
-            return (
-              <rect
-                x={libDrag.x} y={libDrag.y}
-                width={ghostW} height={PANEL_HEIGHT}
-                fill="rgba(80,200,120,0.15)" stroke="#4a6"
-                strokeWidth={0.5} strokeDasharray="2 1"
-                rx={0.5} pointerEvents="none"
-              />
-            );
-          })()}
+          {libDrag &&
+            (() => {
+              const mod = modules.find((m) => m.id === libDrag.moduleId);
+              if (!mod) return null;
+              const ghostW = mod.widthHP * HP_WIDTH;
+              return (
+                <rect
+                  x={libDrag.x}
+                  y={libDrag.y}
+                  width={ghostW}
+                  height={PANEL_HEIGHT}
+                  fill="rgba(80,200,120,0.15)"
+                  stroke="#4a6"
+                  strokeWidth={0.5}
+                  strokeDasharray="2 1"
+                  rx={0.5}
+                  pointerEvents="none"
+                />
+              );
+            })()}
         </svg>
         {searchPopup && (
           <ModuleSearchPopup

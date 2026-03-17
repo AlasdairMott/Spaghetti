@@ -15,7 +15,7 @@ import { ButtonShape } from "../designer/shapes/ButtonShape";
 import { LedShape } from "../designer/shapes/LedShape";
 import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
-import { WireLayer, PreviewWire, type RackDragOverride } from "./WireLayer";
+import { WireLayer, PreviewWire } from "./WireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import type { RackWireEndpoint } from "../../models/types";
 
@@ -102,12 +102,16 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
   // Pan / zoom — use refs as source of truth, sync to state once per frame
   const savedRackView = useAppStore((s) => s.rackView);
   const setRackView = useAppStore((s) => s.setRackView);
-  const [view, setView] = useState(() => savedRackView ?? { zoom: 1, panX: 0, panY: 0 });
+  const [view, setView] = useState(
+    () => savedRackView ?? { zoom: 1, panX: 0, panY: 0 },
+  );
   const viewRef = useRef(view);
 
   // Save rack view on unmount
   useEffect(() => {
-    return () => { setRackView(viewRef.current); };
+    return () => {
+      setRackView(viewRef.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const rafId = useRef(0);
   const isPanning = useRef(false);
@@ -308,10 +312,16 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
       if (!moduleId) return;
     }
     const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
-    const row = Math.max(0, Math.min(rack.rows - 1, Math.floor(pt.y / rowHeight)));
+    const row = Math.max(
+      0,
+      Math.min(rack.rows - 1, Math.floor(pt.y / rowHeight)),
+    );
     const mod = modules.find((m) => m.id === moduleId);
     if (!mod) return;
-    const hp = Math.max(0, Math.min(Math.round(pt.x / HP_WIDTH), rack.widthHP - mod.widthHP));
+    const hp = Math.max(
+      0,
+      Math.min(Math.round(pt.x / HP_WIDTH), rack.widthHP - mod.widthHP),
+    );
     if (!libDrag || hp !== libDrag.hp || row !== libDrag.row) {
       setLibDrag({ moduleId, hp, row });
     }
@@ -655,7 +665,12 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
           onDoubleClick={(e) => {
             if (!svgRef.current) return;
             const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
-            setSearchPopup({ screenX: e.clientX, screenY: e.clientY, svgX: pt.x, svgY: pt.y });
+            setSearchPopup({
+              screenX: e.clientX,
+              screenY: e.clientY,
+              svgX: pt.x,
+              svgY: pt.y,
+            });
           }}
           onPointerDown={(e) => {
             if (e.button === 1) {
@@ -1043,7 +1058,17 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
             );
           })}
 
-          <WireLayer dragOverride={drag ? { placementId: drag.placementId, positionHP: dragPreviewHP, row: dragPreviewRow } : null} />
+          <WireLayer
+            dragOverride={
+              drag
+                ? {
+                    placementId: drag.placementId,
+                    positionHP: dragPreviewHP,
+                    row: dragPreviewRow,
+                  }
+                : null
+            }
+          />
 
           {/* Jack hit targets rendered above wires so they're always clickable */}
           {rack.placements.map((placement) => {
@@ -1106,27 +1131,32 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
           )}
 
           {/* Library drag ghost preview */}
-          {libDrag && (() => {
-            const mod = modules.find((m) => m.id === libDrag.moduleId);
-            if (!mod) return null;
-            const ghostX = libDrag.hp * HP_WIDTH;
-            const ghostY = libDrag.row * rowHeight + RAIL_HEIGHT;
-            const ghostW = mod.widthHP * HP_WIDTH;
-            return (
-              <rect
-                x={ghostX}
-                y={ghostY}
-                width={ghostW}
-                height={PANEL_HEIGHT}
-                fill={libDragOverlaps ? "rgba(255,80,80,0.15)" : "rgba(80,200,120,0.15)"}
-                stroke={libDragOverlaps ? "#f44" : "#4a6"}
-                strokeWidth={0.5}
-                strokeDasharray="2 1"
-                rx={0.5}
-                pointerEvents="none"
-              />
-            );
-          })()}
+          {libDrag &&
+            (() => {
+              const mod = modules.find((m) => m.id === libDrag.moduleId);
+              if (!mod) return null;
+              const ghostX = libDrag.hp * HP_WIDTH;
+              const ghostY = libDrag.row * rowHeight + RAIL_HEIGHT;
+              const ghostW = mod.widthHP * HP_WIDTH;
+              return (
+                <rect
+                  x={ghostX}
+                  y={ghostY}
+                  width={ghostW}
+                  height={PANEL_HEIGHT}
+                  fill={
+                    libDragOverlaps
+                      ? "rgba(255,80,80,0.15)"
+                      : "rgba(80,200,120,0.15)"
+                  }
+                  stroke={libDragOverlaps ? "#f44" : "#4a6"}
+                  strokeWidth={0.5}
+                  strokeDasharray="2 1"
+                  rx={0.5}
+                  pointerEvents="none"
+                />
+              );
+            })()}
         </svg>
         {searchPopup && (
           <ModuleSearchPopup
@@ -1135,14 +1165,20 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
             onSelect={(moduleId) => {
               const mod = modules.find((m) => m.id === moduleId);
               if (mod) {
-                const hp = Math.max(0, Math.min(
-                  Math.round(searchPopup.svgX / HP_WIDTH),
-                  rack.widthHP - mod.widthHP,
-                ));
-                const row = Math.max(0, Math.min(
-                  Math.floor(searchPopup.svgY / rowHeight),
-                  rack.rows - 1,
-                ));
+                const hp = Math.max(
+                  0,
+                  Math.min(
+                    Math.round(searchPopup.svgX / HP_WIDTH),
+                    rack.widthHP - mod.widthHP,
+                  ),
+                );
+                const row = Math.max(
+                  0,
+                  Math.min(
+                    Math.floor(searchPopup.svgY / rowHeight),
+                    rack.rows - 1,
+                  ),
+                );
                 placeModule(moduleId, hp, row);
               }
               setSearchPopup(null);
