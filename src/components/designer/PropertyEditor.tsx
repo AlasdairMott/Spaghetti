@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAppStore } from "../../store";
 import { gridToMm } from "../../utils/grid";
 import { HP_WIDTH, PANEL_HEIGHT } from "../../constants/grid";
+import { exportPanelKicad } from "../../utils/exportKicad";
 import type { Module, PanelComponent } from "../../models/types";
 import { SidebarButton } from "../ui/SidebarButton";
 
@@ -57,7 +58,7 @@ function exportPanelSvg(module: Module) {
             ? [0]
             : buttonLeds === 2
               ? [-2, 2]
-              : [-3.81, 0, 3.81];
+              : [-5.08, 0, 5.08];
         for (const lx of ledOffsets) {
           holes.push(
             `<circle cx="${(pos.x + lx).toFixed(3)}" cy="${(pos.y - 5.73 + 2.607).toFixed(3)}" r="${(LED_HOLE_DIAMETER / 2).toFixed(3)}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
@@ -86,10 +87,17 @@ function exportPanelSvg(module: Module) {
   URL.revokeObjectURL(url);
 }
 
-const inputCls = "w-full px-2 py-1 bg-surface-2 border border-border-light rounded text-text text-[13px] box-border";
+const inputCls =
+  "w-full px-2 py-1 bg-surface-2 border border-border-light rounded text-text text-[13px] box-border";
 const labelCls = "text-[11px] text-text-muted mb-0.5 block";
 
-function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+function TagsEditor({
+  tags,
+  onChange,
+}: {
+  tags: string[];
+  onChange: (tags: string[]) => void;
+}) {
   const [input, setInput] = useState("");
 
   const addTag = () => {
@@ -126,7 +134,10 @@ function TagsEditor({ tags, onChange }: { tags: string[]; onChange: (tags: strin
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { e.preventDefault(); addTag(); }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            addTag();
+          }
           if (e.key === "Backspace" && !input && tags.length > 0) {
             onChange(tags.slice(0, -1));
           }
@@ -145,7 +156,10 @@ function allSame<T>(items: T[], key: keyof T): boolean {
 }
 
 /** Get the shared value if all match, otherwise undefined */
-function sharedValue<T, K extends keyof T>(items: T[], key: K): T[K] | undefined {
+function sharedValue<T, K extends keyof T>(
+  items: T[],
+  key: K,
+): T[K] | undefined {
   if (items.length === 0 || !allSame(items, key)) return undefined;
   return items[0][key];
 }
@@ -164,9 +178,7 @@ function SingleComponentEditor({
     <>
       <div>
         <span className={labelCls}>Type</span>
-        <div className="text-[13px] text-text capitalize">
-          {component.kind}
-        </div>
+        <div className="text-[13px] text-text capitalize">{component.kind}</div>
       </div>
 
       <div>
@@ -201,8 +213,7 @@ function SingleComponentEditor({
           className={`${inputCls} ${
             component.ref &&
             editingModule.components.some(
-              (c) =>
-                c.id !== component.id && c.ref && c.ref === component.ref,
+              (c) => c.id !== component.id && c.ref && c.ref === component.ref,
             )
               ? "!border-[#f44]"
               : ""
@@ -217,8 +228,7 @@ function SingleComponentEditor({
         />
         {component.ref &&
           editingModule.components.some(
-            (c) =>
-              c.id !== component.id && c.ref && c.ref === component.ref,
+            (c) => c.id !== component.id && c.ref && c.ref === component.ref,
           ) && (
             <div className="text-[11px] text-[#f44] mt-0.5">
               Duplicate ref — must be unique
@@ -383,49 +393,50 @@ function LabelColorEditor({
     <div>
       <span className={labelCls}>Label Color</span>
       <div className="flex gap-1 items-center">
-        {(
-          [null, "yellow", "blue", "red", "green", "custom"] as const
-        ).map((color) => {
-          const isActive = currentColor !== undefined && (currentColor ?? null) === color;
-          const displayColor =
-            color === null
-              ? "transparent"
-              : color === "custom"
-                ? components[0]?.labelColorCustom || "#fff"
-                : {
-                    yellow: "#fd0",
-                    blue: "#48f",
-                    red: "#f44",
-                    green: "#4d4",
-                  }[color];
-          return (
-            <button
-              key={color ?? "none"}
-              onClick={() => onUpdate({ labelColor: color })}
-              title={color ?? "None"}
-              className="w-4.5 h-4.5 rounded-full cursor-pointer p-0 relative"
-              style={{
-                border: isActive ? "2px solid var(--color-accent)" : "1px solid var(--color-border-light)",
-                background: displayColor,
-              }}
-            >
-              {color === null && (
-                <span className="text-[10px] text-text-dim leading-4">
-                  &ndash;
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {([null, "yellow", "blue", "red", "green", "custom"] as const).map(
+          (color) => {
+            const isActive =
+              currentColor !== undefined && (currentColor ?? null) === color;
+            const displayColor =
+              color === null
+                ? "transparent"
+                : color === "custom"
+                  ? components[0]?.labelColorCustom || "#fff"
+                  : {
+                      yellow: "#fd0",
+                      blue: "#48f",
+                      red: "#f44",
+                      green: "#4d4",
+                    }[color];
+            return (
+              <button
+                key={color ?? "none"}
+                onClick={() => onUpdate({ labelColor: color })}
+                title={color ?? "None"}
+                className="w-4.5 h-4.5 rounded-full cursor-pointer p-0 relative"
+                style={{
+                  border: isActive
+                    ? "2px solid var(--color-accent)"
+                    : "1px solid var(--color-border-light)",
+                  background: displayColor,
+                }}
+              >
+                {color === null && (
+                  <span className="text-[10px] text-text-dim leading-4">
+                    &ndash;
+                  </span>
+                )}
+              </button>
+            );
+          },
+        )}
       </div>
       {currentColor === "custom" && (
         <input
           className={`${inputCls} mt-1`}
           type="color"
           value={components[0]?.labelColorCustom || "#ffffff"}
-          onChange={(e) =>
-            onUpdate({ labelColorCustom: e.target.value })
-          }
+          onChange={(e) => onUpdate({ labelColorCustom: e.target.value })}
         />
       )}
     </div>
@@ -577,10 +588,14 @@ export function PropertyEditor() {
   const updateModuleWidth = useAppStore((s) => s.updateModuleWidth);
   const updateModuleTags = useAppStore((s) => s.updateModuleTags);
 
-  const singleComponent = editingModule?.components.find((c) => c.id === selectedId);
-  const multiComponents = selectedIds.length > 1
-    ? editingModule?.components.filter((c) => selectedIds.includes(c.id)) ?? []
-    : [];
+  const singleComponent = editingModule?.components.find(
+    (c) => c.id === selectedId,
+  );
+  const multiComponents =
+    selectedIds.length > 1
+      ? (editingModule?.components.filter((c) => selectedIds.includes(c.id)) ??
+        [])
+      : [];
   const connection = editingModule?.connections?.find(
     (c) => c.id === selectedConnectionId,
   );
@@ -709,6 +724,9 @@ export function PropertyEditor() {
           </SidebarButton>
           <SidebarButton onClick={() => exportPanelSvg(editingModule)}>
             Export Panel SVG
+          </SidebarButton>
+          <SidebarButton onClick={() => exportPanelKicad(editingModule)}>
+            Export KiCad PCB
           </SidebarButton>
         </div>
       )}

@@ -21,7 +21,7 @@ function ledXPositions(count: number): number[] {
     case 2:
       return [-2, 2];
     case 3:
-      return [-3.81, 0, 3.81];
+      return [-5.08, 0, 5.08];
     default:
       return [];
   }
