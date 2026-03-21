@@ -208,6 +208,22 @@ export function CanvasCanvas({
     y: number;
   } | null>(null);
 
+  // Marquee selection
+  const isMarqueeing = useRef(false);
+  const marqueeStartRef = useRef({ x: 0, y: 0 });
+  const marqueeBoundsRef = useRef<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
+  const [marqueeBounds, setMarqueeBounds] = useState<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
+
   // Module search popup (double-click to add)
   const [searchPopup, setSearchPopup] = useState<{
     screenX: number;
@@ -653,6 +669,19 @@ export function CanvasCanvas({
                 y: viewRef.current.panY,
               };
               e.currentTarget.setPointerCapture(e.pointerId);
+            } else if (
+              e.button === 0 &&
+              svgRef.current &&
+              (e.target === e.currentTarget ||
+                (e.target as Element).getAttribute("data-bg") === "true")
+            ) {
+              const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+              isMarqueeing.current = true;
+              marqueeStartRef.current = pt;
+              const bounds = { x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y };
+              marqueeBoundsRef.current = bounds;
+              setMarqueeBounds(bounds);
+              e.currentTarget.setPointerCapture(e.pointerId);
             }
           }}
           onPointerMove={(e) => {
@@ -672,12 +701,52 @@ export function CanvasCanvas({
               }
               return;
             }
+            if (isMarqueeing.current && svgRef.current) {
+              const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+              const { x: sx, y: sy } = marqueeStartRef.current;
+              const bounds = {
+                x1: Math.min(sx, pt.x),
+                y1: Math.min(sy, pt.y),
+                x2: Math.max(sx, pt.x),
+                y2: Math.max(sy, pt.y),
+              };
+              marqueeBoundsRef.current = bounds;
+              setMarqueeBounds(bounds);
+              return;
+            }
             handlePointerMove(e);
           }}
           onPointerUp={(e) => {
             if (e.button === 1) {
               isPanning.current = false;
               e.currentTarget.releasePointerCapture(e.pointerId);
+              return;
+            }
+            if (isMarqueeing.current) {
+              isMarqueeing.current = false;
+              const mb = marqueeBoundsRef.current;
+              marqueeBoundsRef.current = null;
+              setMarqueeBounds(null);
+              if (mb && (mb.x2 - mb.x1 > 2 || mb.y2 - mb.y1 > 2)) {
+                const ids = canvas.placements
+                  .filter((p) => {
+                    const mod = modules.find((m) => m.id === p.moduleId);
+                    if (!mod) return false;
+                    const pw = mod.widthHP * HP_WIDTH;
+                    return (
+                      p.x < mb.x2 &&
+                      p.x + pw > mb.x1 &&
+                      p.y < mb.y2 &&
+                      p.y + PANEL_HEIGHT > mb.y1
+                    );
+                  })
+                  .map((p) => p.id);
+                canvasSelectPlacements(ids);
+                if (ids.length > 0) canvasSelectWires([]);
+              } else {
+                canvasSelectWires([]);
+                canvasSelectPlacements([]);
+              }
               return;
             }
             handlePointerUp(e);
@@ -705,6 +774,7 @@ export function CanvasCanvas({
             width={vbW}
             height={vbH}
             fill="url(#canvasGrid)"
+            data-bg="true"
           />
 
           {/* Modules */}
@@ -1063,6 +1133,21 @@ export function CanvasCanvas({
                 />
               );
             })()}
+
+          {/* Marquee selection rect */}
+          {marqueeBounds && (
+            <rect
+              x={marqueeBounds.x1}
+              y={marqueeBounds.y1}
+              width={marqueeBounds.x2 - marqueeBounds.x1}
+              height={marqueeBounds.y2 - marqueeBounds.y1}
+              fill="rgba(100,150,255,0.08)"
+              stroke="rgba(100,150,255,0.6)"
+              strokeWidth={0.5 / view.zoom}
+              strokeDasharray={`${2 / view.zoom} ${2 / view.zoom}`}
+              pointerEvents="none"
+            />
+          )}
         </svg>
         {searchPopup && (
           <ModuleSearchPopup

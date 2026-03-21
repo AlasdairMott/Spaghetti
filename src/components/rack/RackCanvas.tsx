@@ -203,6 +203,22 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
     y: number;
   } | null>(null);
 
+  // Marquee selection
+  const isMarqueeing = useRef(false);
+  const marqueeStartRef = useRef({ x: 0, y: 0 });
+  const marqueeBoundsRef = useRef<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
+  const [marqueeBounds, setMarqueeBounds] = useState<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
+
   // Module search popup (double-click to add)
   const [searchPopup, setSearchPopup] = useState<{
     screenX: number;
@@ -682,6 +698,19 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                 y: viewRef.current.panY,
               };
               e.currentTarget.setPointerCapture(e.pointerId);
+            } else if (
+              e.button === 0 &&
+              svgRef.current &&
+              (e.target === e.currentTarget ||
+                (e.target as Element).getAttribute("data-bg") === "true")
+            ) {
+              const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+              isMarqueeing.current = true;
+              marqueeStartRef.current = pt;
+              const bounds = { x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y };
+              marqueeBoundsRef.current = bounds;
+              setMarqueeBounds(bounds);
+              e.currentTarget.setPointerCapture(e.pointerId);
             }
           }}
           onPointerMove={(e) => {
@@ -701,12 +730,54 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
               }
               return;
             }
+            if (isMarqueeing.current && svgRef.current) {
+              const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+              const { x: sx, y: sy } = marqueeStartRef.current;
+              const bounds = {
+                x1: Math.min(sx, pt.x),
+                y1: Math.min(sy, pt.y),
+                x2: Math.max(sx, pt.x),
+                y2: Math.max(sy, pt.y),
+              };
+              marqueeBoundsRef.current = bounds;
+              setMarqueeBounds(bounds);
+              return;
+            }
             handlePointerMove(e);
           }}
           onPointerUp={(e) => {
             if (e.button === 1) {
               isPanning.current = false;
               e.currentTarget.releasePointerCapture(e.pointerId);
+              return;
+            }
+            if (isMarqueeing.current) {
+              isMarqueeing.current = false;
+              const mb = marqueeBoundsRef.current;
+              marqueeBoundsRef.current = null;
+              setMarqueeBounds(null);
+              if (mb && (mb.x2 - mb.x1 > 2 || mb.y2 - mb.y1 > 2)) {
+                const ids = rack.placements
+                  .filter((p) => {
+                    const mod = modules.find((m) => m.id === p.moduleId);
+                    if (!mod) return false;
+                    const px = p.positionHP * HP_WIDTH;
+                    const py = p.row * rowHeight + RAIL_HEIGHT;
+                    const pw = mod.widthHP * HP_WIDTH;
+                    return (
+                      px < mb.x2 &&
+                      px + pw > mb.x1 &&
+                      py < mb.y2 &&
+                      py + PANEL_HEIGHT > mb.y1
+                    );
+                  })
+                  .map((p) => p.id);
+                selectPlacements(ids);
+                if (ids.length > 0) selectWires([]);
+              } else {
+                selectWires([]);
+                selectPlacements([]);
+              }
               return;
             }
             handlePointerUp(e);
@@ -723,6 +794,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                   height={RAIL_HEIGHT}
                   fill={railColor}
                   rx={0.5}
+                  data-bg="true"
                 />
                 <rect
                   x={0}
@@ -732,6 +804,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                   fill={emptyRowBg}
                   stroke={emptyRowStroke}
                   strokeWidth={0.3}
+                  data-bg="true"
                 />
                 <rect
                   x={0}
@@ -740,6 +813,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                   height={RAIL_HEIGHT}
                   fill={railColor}
                   rx={0.5}
+                  data-bg="true"
                 />
                 {Array.from({ length: rack.widthHP + 1 }, (_, hp) => (
                   <line
@@ -1157,6 +1231,21 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                 />
               );
             })()}
+
+          {/* Marquee selection rect */}
+          {marqueeBounds && (
+            <rect
+              x={marqueeBounds.x1}
+              y={marqueeBounds.y1}
+              width={marqueeBounds.x2 - marqueeBounds.x1}
+              height={marqueeBounds.y2 - marqueeBounds.y1}
+              fill="rgba(100,150,255,0.08)"
+              stroke="rgba(100,150,255,0.6)"
+              strokeWidth={0.25 / view.zoom}
+              strokeDasharray={`${1 / view.zoom} ${1 / view.zoom}`}
+              pointerEvents="none"
+            />
+          )}
         </svg>
         {searchPopup && (
           <ModuleSearchPopup

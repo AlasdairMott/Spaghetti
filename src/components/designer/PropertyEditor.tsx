@@ -584,6 +584,9 @@ export function PropertyEditor() {
   const selectedConnectionId = useAppStore((s) => s.selectedConnectionId);
   const updateConnection = useAppStore((s) => s.updateConnection);
   const removeConnection = useAppStore((s) => s.removeConnection);
+  const selectedRectId = useAppStore((s) => s.selectedRectId);
+  const updateRect = useAppStore((s) => s.updateRect);
+  const removeRect = useAppStore((s) => s.removeRect);
   const updateModuleName = useAppStore((s) => s.updateModuleName);
   const updateModuleWidth = useAppStore((s) => s.updateModuleWidth);
   const updateModuleTags = useAppStore((s) => s.updateModuleTags);
@@ -599,6 +602,7 @@ export function PropertyEditor() {
   const connection = editingModule?.connections?.find(
     (c) => c.id === selectedConnectionId,
   );
+  const rect = editingModule?.rects?.find((r) => r.id === selectedRectId);
 
   return (
     <div className="w-55 bg-surface-1 border-l border-border p-3 flex flex-col gap-3 overflow-y-auto">
@@ -606,7 +610,37 @@ export function PropertyEditor() {
         Properties
       </div>
 
-      {connection ? (
+      {rect ? (
+        <>
+          <div>
+            <span className={labelCls}>Type</span>
+            <div className="text-[13px] text-text">Rectangle</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="rect-dotted"
+              checked={rect.dotted ?? false}
+              onChange={(e) => updateRect(rect.id, { dotted: e.target.checked })}
+            />
+            <label htmlFor="rect-dotted" className="text-[13px] text-text cursor-pointer">Dotted</label>
+          </div>
+          <div>
+            <span className={labelCls}>Drop Shadow (mm)</span>
+            <input
+              className={inputCls}
+              type="number"
+              value={rect.shadowOffset ?? 0}
+              onChange={(e) => updateRect(rect.id, { shadowOffset: parseFloat(e.target.value) || 0 })}
+              step={0.5}
+              min={0}
+            />
+          </div>
+          <SidebarButton variant="danger" onClick={() => removeRect(rect.id)} className="mt-2">
+            Delete Rectangle
+          </SidebarButton>
+        </>
+      ) : connection ? (
         <>
           <div>
             <span className={labelCls}>Type</span>

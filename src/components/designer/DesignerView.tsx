@@ -12,6 +12,8 @@ export function DesignerView() {
   const setActiveTool = useAppStore((s) => s.setActiveTool);
   const removeComponent = useAppStore((s) => s.removeComponent);
   const removeConnection = useAppStore((s) => s.removeConnection);
+  const selectedRectId = useAppStore((s) => s.selectedRectId);
+  const removeRect = useAppStore((s) => s.removeRect);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const selectedConnectionId = useAppStore((s) => s.selectedConnectionId);
   const selectComponent = useAppStore((s) => s.selectComponent);
@@ -69,7 +71,12 @@ export function DesignerView() {
             selectedComponentIds.forEach((id) => removeComponent(id));
           } else if (selectedConnectionId) {
             removeConnection(selectedConnectionId);
+          } else if (selectedRectId) {
+            removeRect(selectedRectId);
           }
+          break;
+        case "r":
+          setActiveTool("addRect");
           break;
         case "escape":
           selectComponent(null);
@@ -83,8 +90,10 @@ export function DesignerView() {
     setActiveTool,
     removeComponent,
     removeConnection,
+    removeRect,
     selectedComponentIds,
     selectedConnectionId,
+    selectedRectId,
     selectComponent,
     undo,
     redo,

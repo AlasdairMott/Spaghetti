@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Module, PanelComponent, ComponentKind, GridPosition, Tool, ConnectionKind, MmPoint, Connection } from "../models/types";
+import type { Module, PanelComponent, ComponentKind, GridPosition, Tool, ConnectionKind, MmPoint, Connection, PanelRect } from "../models/types";
 import type { AppStore } from "./index";
 
 const MAX_HISTORY = 100;
@@ -10,6 +10,7 @@ export interface EditorSlice {
   selectedComponentId: string | null;
   selectedComponentIds: string[];
   selectedConnectionId: string | null;
+  selectedRectId: string | null;
   _history: Module[];
   _future: Module[];
 
@@ -21,6 +22,11 @@ export interface EditorSlice {
   selectComponent: (id: string | null) => void;
   selectComponents: (ids: string[]) => void;
   selectConnection: (id: string | null) => void;
+  selectRect: (id: string | null) => void;
+
+  addRect: (from: MmPoint, to: MmPoint) => void;
+  updateRect: (id: string, updates: Partial<PanelRect>) => void;
+  removeRect: (id: string) => void;
 
   updateModuleName: (name: string) => void;
   updateModuleWidth: (widthHP: number) => void;
@@ -61,6 +67,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
   selectedComponentId: null,
   selectedComponentIds: [],
   selectedConnectionId: null,
+  selectedRectId: null,
   _history: [],
   _future: [],
 
@@ -96,15 +103,56 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
     }),
 
   closeEditor: () =>
-    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], selectedConnectionId: null, activeTool: "select", _history: [], _future: [] }),
+    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], selectedConnectionId: null, selectedRectId: null, activeTool: "select", _history: [], _future: [] }),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
 
-  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedConnectionId: null }),
+  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedConnectionId: null, selectedRectId: null }),
 
-  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null, selectedConnectionId: null }),
+  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null, selectedConnectionId: null, selectedRectId: null }),
 
-  selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: null, selectedComponentIds: [] }),
+  selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: null, selectedComponentIds: [], selectedRectId: null }),
+
+  selectRect: (id) => set({ selectedRectId: id, selectedConnectionId: null, selectedComponentId: null, selectedComponentIds: [] }),
+
+  addRect: (from, to) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      const rect: PanelRect = { id: crypto.randomUUID(), from, to };
+      return {
+        ...pushHistory(state),
+        editingModule: { ...state.editingModule, rects: [...(state.editingModule.rects ?? []), rect] },
+        selectedRectId: rect.id,
+        selectedConnectionId: null,
+        selectedComponentId: null,
+        selectedComponentIds: [],
+      };
+    }),
+
+  updateRect: (id, updates) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          rects: (state.editingModule.rects ?? []).map((r) => r.id === id ? { ...r, ...updates } : r),
+        },
+      };
+    }),
+
+  removeRect: (id) =>
+    set((state) => {
+      if (!state.editingModule) return state;
+      return {
+        ...pushHistory(state),
+        editingModule: {
+          ...state.editingModule,
+          rects: (state.editingModule.rects ?? []).filter((r) => r.id !== id),
+        },
+        selectedRectId: state.selectedRectId === id ? null : state.selectedRectId,
+      };
+    }),
 
   updateModuleName: (name) =>
     set((state) => {
@@ -348,6 +396,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         selectedComponentId: null,
         selectedComponentIds: [],
         selectedConnectionId: null,
+        selectedRectId: null,
       };
     }),
 
@@ -364,6 +413,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         selectedComponentId: null,
         selectedComponentIds: [],
         selectedConnectionId: null,
+        selectedRectId: null,
       };
     }),
 });

@@ -266,7 +266,13 @@ export function exportPanelKicad(module: Module): void {
   }
 
   // Module name (centred at top, matching PanelCanvas)
-  items.push(silkText(module.name, panelWidth / 2, 4, MODULE_NAME_FONT_SIZE));
+  const capitalized = module.name
+    .split(/[-_ ]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  items.push(
+    silkText(capitalized, panelWidth / 2, 4.35, MODULE_NAME_FONT_SIZE),
+  );
 
   // Top and bottom panel lines (matching PanelBackground)
   const topLineY = GRID_Y_OFFSET + GRID_Y * 0.75;
@@ -294,6 +300,40 @@ export function exportPanelKicad(module: Module): void {
     items.push(...connectionItems(conn));
   }
 
+  // Rectangles
+  for (const rect of module.rects ?? []) {
+    const x1 = Math.min(rect.from.x, rect.to.x);
+    const y1 = Math.min(rect.from.y, rect.to.y);
+    const x2 = Math.max(rect.from.x, rect.to.x);
+    const y2 = Math.max(rect.from.y, rect.to.y);
+    const so = rect.shadowOffset ?? 0;
+    const strokeType = rect.dotted ? "dot" : "default";
+
+    if (so > 0) {
+      // Right bar
+      items.push(
+        [
+          `  (gr_rect (start ${f(x2)} ${f(y1 + so)}) (end ${f(x2 + so)} ${f(y2 + so)})`,
+          `    (stroke (width 0) (type solid)) (fill solid) (layer "F.SilkS") (uuid "${uuid()}"))`,
+        ].join("\n"),
+      );
+      // Bottom bar
+      items.push(
+        [
+          `  (gr_rect (start ${f(x1 + so)} ${f(y2)}) (end ${f(x2 + so)} ${f(y2 + so)})`,
+          `    (stroke (width 0) (type solid)) (fill solid) (layer "F.SilkS") (uuid "${uuid()}"))`,
+        ].join("\n"),
+      );
+    }
+
+    items.push(
+      [
+        `  (gr_rect (start ${f(x1)} ${f(y1)}) (end ${f(x2)} ${f(y2)})`,
+        `    (stroke (width 0.2) (type ${strokeType})) (fill none) (layer "F.SilkS") (uuid "${uuid()}"))`,
+      ].join("\n"),
+    );
+  }
+
   // Components
   for (const comp of module.components) {
     const pos = gridToMm(comp.position);
@@ -315,7 +355,7 @@ export function exportPanelKicad(module: Module): void {
     } else if (comp.kind === "button") {
       const buttonLeds = comp.buttonLedCount ?? 0;
       const hasLeds = buttonLeds > 0;
-      const buttonY = hasLeds ? pos.y + 2.607 : pos.y;
+      const buttonY = hasLeds ? pos.y + 2.88 : pos.y;
       items.push(npthPad(pos.x, buttonY, BUTTON_HOLE_DIAMETER));
       if (comp.label)
         items.push(
@@ -335,7 +375,7 @@ export function exportPanelKicad(module: Module): void {
               : [-5.08, 0, 5.08];
         for (const lx of ledOffsets) {
           items.push(
-            npthPad(pos.x + lx, pos.y - 5.73 + 2.607, LED_HOLE_DIAMETER),
+            npthPad(pos.x + lx, pos.y - 5.73 + 2.88, LED_HOLE_DIAMETER),
           );
         }
       }

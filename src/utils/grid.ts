@@ -35,6 +35,16 @@ export function hpToMm(hp: number): number {
   return hp * 5.08;
 }
 
+/** Snap mm coordinates to the nearest quarter-grid position (accounting for vertical offset) */
+export function snapToQuarterGrid(mmX: number, mmY: number): { x: number; y: number } {
+  const qx = GRID_X / 4;
+  const qy = GRID_Y / 4;
+  return {
+    x: Math.round(mmX / qx) * qx,
+    y: Math.round((mmY - GRID_Y_OFFSET) / qy) * qy + GRID_Y_OFFSET,
+  };
+}
+
 /** Clamp a grid position within panel bounds */
 export function clampGridPosition(
   pos: GridPosition,

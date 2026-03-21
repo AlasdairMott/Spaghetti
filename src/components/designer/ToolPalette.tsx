@@ -5,6 +5,7 @@ import {
   MousePointer2,
   MoveUpRight,
   Slash,
+  Square,
 } from "lucide-react";
 
 function JackIcon({ color }: { color: string }) {
@@ -56,6 +57,7 @@ const tools: {
   { id: "addButton", label: "Add Button", shortcut: "B", Icon: ButtonIcon },
   { id: "addLine", label: "Line", shortcut: "L", Icon: lucideIcon(Slash) },
   { id: "addArrow", label: "Arrow", shortcut: "A", Icon: lucideIcon(MoveUpRight) },
+  { id: "addRect", label: "Rectangle", shortcut: "R", Icon: lucideIcon(Square) },
 ];
 
 export function ToolPalette() {

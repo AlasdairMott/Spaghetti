@@ -58,6 +58,7 @@ export interface Module {
   widthHP: number;
   components: PanelComponent[];
   connections: Connection[];
+  rects?: PanelRect[];
   /** User-written audio processing code (JavaScript) */
   code?: string;
   /** Tags for categorisation and search */
@@ -106,13 +107,23 @@ export interface Rack {
   buttonStates: ButtonState[];
 }
 
+export interface PanelRect {
+  id: string;
+  from: MmPoint;
+  to: MmPoint;
+  dotted?: boolean;
+  /** Drop shadow offset in mm. 0 or absent = no shadow. */
+  shadowOffset?: number;
+}
+
 export type Tool =
   | "select"
   | "addJack"
   | "addPot"
   | "addButton"
   | "addLine"
-  | "addArrow";
+  | "addArrow"
+  | "addRect";
 export interface CanvasPlacement {
   id: string;
   moduleId: string;

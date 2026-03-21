@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { useAppStore } from "../store";
 import { snapToGrid, gridToMm } from "../utils/grid";
 import { HIT_RADIUS } from "../constants/grid";
-import type { MmPoint, PanelComponent, ConnectionKind, ComponentKind } from "../models/types";
+import type { MmPoint, PanelComponent, ConnectionKind, ComponentKind, PanelRect } from "../models/types";
 
 interface ResolvedEndpoint {
   point: MmPoint;
@@ -30,6 +30,18 @@ function resolveEndpoint(svgX: number, svgY: number, components: PanelComponent[
   return { point: { x: mm.x, y: mm.y }, offset: 0 };
 }
 
+/** Hit-test a point against the border of a rect (within tolerance) */
+function hitTestRect(px: number, py: number, rect: PanelRect, tol = 1.5): boolean {
+  const x1 = Math.min(rect.from.x, rect.to.x);
+  const y1 = Math.min(rect.from.y, rect.to.y);
+  const x2 = Math.max(rect.from.x, rect.to.x);
+  const y2 = Math.max(rect.from.y, rect.to.y);
+  if (px < x1 - tol || px > x2 + tol || py < y1 - tol || py > y2 + tol) return false;
+  // Inside the inner (inset) region → not a border hit
+  if (px > x1 + tol && px < x2 - tol && py > y1 + tol && py < y2 - tol) return false;
+  return true;
+}
+
 /** Point-to-line-segment distance */
 function distToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -50,11 +62,12 @@ export function useToolAction() {
   const selectComponents = useAppStore((s) => s.selectComponents);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const selectConnection = useAppStore((s) => s.selectConnection);
+  const selectRect = useAppStore((s) => s.selectRect);
 
   const [lineStart, setLineStart] = useState<MmPoint | null>(null);
   const startOffsetRef = useRef(0);
 
-  // Clear pending line start when tool changes
+  // Clear pending starts when tool changes
   useEffect(() => {
     setLineStart(null);
     startOffsetRef.current = 0;
@@ -133,6 +146,20 @@ export function useToolAction() {
           }
           if (hitConnId) {
             selectConnection(hitConnId);
+            break;
+          }
+
+          // Hit-test rects (border only)
+          const rects = editingModule.rects ?? [];
+          let hitRectId: string | null = null;
+          for (const rect of rects) {
+            if (hitTestRect(svgX, svgY, rect)) {
+              hitRectId = rect.id;
+              break;
+            }
+          }
+          if (hitRectId) {
+            selectRect(hitRectId);
           } else if (!shiftKey) {
             selectComponent(null);
           }
@@ -140,7 +167,7 @@ export function useToolAction() {
         }
       }
     },
-    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectComponents, selectedComponentIds, selectConnection, lineStart]
+    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectComponents, selectedComponentIds, selectConnection, selectRect, lineStart]
   );
 
   return { handleCanvasClick, lineStart };
