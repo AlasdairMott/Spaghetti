@@ -32,6 +32,9 @@ interface DragState {
   moduleId: string;
   offsetX: number;
   offsetY: number;
+  startX: number;
+  startY: number;
+  isMulti: boolean;
 }
 
 interface KnobDragState {
@@ -72,6 +75,7 @@ export function CanvasCanvas({
   const canvasPlaceModule = useAppStore((s) => s.canvasPlaceModule);
   const canvasRemovePlacement = useAppStore((s) => s.canvasRemovePlacement);
   const canvasMoveModule = useAppStore((s) => s.canvasMoveModule);
+  const canvasBatchMoveModules = useAppStore((s) => s.canvasBatchMoveModules);
   const canvasAddWire = useAppStore((s) => s.canvasAddWire);
   const canvasRemoveWire = useAppStore((s) => s.canvasRemoveWire);
   const canvasSelectWires = useAppStore((s) => s.canvasSelectWires);
@@ -375,11 +379,17 @@ export function CanvasCanvas({
       didDragRef.current = false;
       pointerDownShiftRef.current = e.shiftKey;
       const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+      const curSelected = useAppStore.getState().canvasSelectedPlacementIds;
+      const isAlreadySelected = curSelected.includes(placementId);
+      const isMulti = isAlreadySelected && curSelected.length > 1 && !e.shiftKey;
       setDrag({
         placementId,
         moduleId,
         offsetX: pt.x - px,
         offsetY: pt.y - py,
+        startX: px,
+        startY: py,
+        isMulti,
       });
       setDragPreview({ x: px, y: py });
       (e.target as SVGElement).setPointerCapture(e.pointerId);
@@ -508,7 +518,21 @@ export function CanvasCanvas({
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (drag) {
         if (didDragRef.current) {
-          canvasMoveModule(drag.placementId, dragPreview.x, dragPreview.y);
+          if (drag.isMulti) {
+            const deltaX = dragPreview.x - drag.startX;
+            const deltaY = dragPreview.y - drag.startY;
+            const state = useAppStore.getState();
+            const moves = state.canvasSelectedPlacementIds
+              .map((id) => {
+                const p = state.canvas.placements.find((pl) => pl.id === id);
+                if (!p) return null;
+                return { placementId: id, x: p.x + deltaX, y: p.y + deltaY };
+              })
+              .filter((m): m is NonNullable<typeof m> => m !== null);
+            canvasBatchMoveModules(moves);
+          } else {
+            canvasMoveModule(drag.placementId, dragPreview.x, dragPreview.y);
+          }
         } else {
           const pid = drag.placementId;
           setWireStart(null);
@@ -572,6 +596,7 @@ export function CanvasCanvas({
       drag,
       dragPreview,
       canvasMoveModule,
+      canvasBatchMoveModules,
       knobDrag,
       canvasSelectWires,
       canvasSelectPlacements,
@@ -782,17 +807,26 @@ export function CanvasCanvas({
             const mod = modules.find((m) => m.id === placement.moduleId);
             if (!mod) return null;
             const isDragging = drag?.placementId === placement.id;
+            const isMultiDragging = drag?.isMulti && canvasSelectedPlacementIds.includes(placement.id) && !isDragging;
             const isSelected = canvasSelectedPlacementIds.includes(
               placement.id,
             );
-            const displayX = isDragging ? dragPreview.x : placement.x;
-            const displayY = isDragging ? dragPreview.y : placement.y;
+            const displayX = isDragging
+              ? dragPreview.x
+              : isMultiDragging
+                ? placement.x + (dragPreview.x - drag!.startX)
+                : placement.x;
+            const displayY = isDragging
+              ? dragPreview.y
+              : isMultiDragging
+                ? placement.y + (dragPreview.y - drag!.startY)
+                : placement.y;
             const modWidth = mod.widthHP * HP_WIDTH;
             return (
               <g
                 key={placement.id}
                 transform={`translate(${displayX}, ${displayY})`}
-                opacity={isDragging ? 0.7 : 1}
+                opacity={isDragging || isMultiDragging ? 0.7 : 1}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   openModuleForEditing(mod);
@@ -808,7 +842,7 @@ export function CanvasCanvas({
                   )
                 }
                 style={{
-                  cursor: isDragging
+                  cursor: isDragging || isMultiDragging
                     ? "grabbing"
                     : isSelected
                       ? "grab"
@@ -822,7 +856,7 @@ export function CanvasCanvas({
                   height={PANEL_HEIGHT}
                   fill={panelBg}
                   stroke={
-                    isDragging ? "#fa4" : isSelected ? "#4af" : panelStroke
+                    isDragging || isMultiDragging ? "#fa4" : isSelected ? "#4af" : panelStroke
                   }
                   strokeWidth={isSelected ? 0.6 : 0.2}
                   rx={0.5}
@@ -1043,13 +1077,21 @@ export function CanvasCanvas({
           })}
 
           <CanvasWireLayer
-            dragOverride={
+            dragOverrides={
               drag
-                ? {
-                    placementId: drag.placementId,
-                    x: dragPreview.x,
-                    y: dragPreview.y,
-                  }
+                ? drag.isMulti
+                  ? (() => {
+                      const deltaX = dragPreview.x - drag.startX;
+                      const deltaY = dragPreview.y - drag.startY;
+                      return canvasSelectedPlacementIds
+                        .map((id) => {
+                          const p = canvas.placements.find((pl) => pl.id === id);
+                          if (!p) return null;
+                          return { placementId: id, x: p.x + deltaX, y: p.y + deltaY };
+                        })
+                        .filter((o): o is NonNullable<typeof o> => o !== null);
+                    })()
+                  : [{ placementId: drag.placementId, x: dragPreview.x, y: dragPreview.y }]
                 : null
             }
           />

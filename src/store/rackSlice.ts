@@ -13,6 +13,7 @@ export interface RackSlice {
   placeModule: (moduleId: string, positionHP: number, row: number) => void;
   removeFromRack: (placementId: string) => void;
   moveInRack: (placementId: string, newPositionHP: number, newRow?: number) => void;
+  batchMoveInRack: (moves: Array<{ placementId: string; positionHP: number; row: number }>) => void;
   addWire: (from: RackWireEndpoint, to: RackWireEndpoint) => void;
   removeWire: (id: string) => void;
   selectWires: (ids: string[]) => void;
@@ -121,6 +122,27 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
       }
       return {
         rack: { ...state.rack, placements: [...others, moved] },
+      };
+    }),
+
+  batchMoveInRack: (moves) =>
+    set((state) => {
+      const getWidth = (id: string) =>
+        state.modules.find((m) => m.id === id)?.widthHP ?? 0;
+      const moveIds = new Set(moves.map((m) => m.placementId));
+      const others = state.rack.placements.filter((p) => !moveIds.has(p.id));
+      const movedPlacements: RackPlacement[] = [];
+
+      for (const move of moves) {
+        const existing = state.rack.placements.find((p) => p.id === move.placementId);
+        if (!existing) continue;
+        const moved: RackPlacement = { ...existing, positionHP: move.positionHP, row: move.row };
+        if (hasOverlap(others, moved, getWidth, state.rack.widthHP)) return state;
+        movedPlacements.push(moved);
+      }
+
+      return {
+        rack: { ...state.rack, placements: [...others, ...movedPlacements] },
       };
     }),
 

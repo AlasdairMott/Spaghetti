@@ -28,7 +28,9 @@ interface DragState {
   placementId: string;
   moduleId: string;
   offsetHP: number;
+  startHP: number;
   startRow: number;
+  isMulti: boolean;
 }
 
 interface KnobDragState {
@@ -70,6 +72,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
   const placeModule = useAppStore((s) => s.placeModule);
   const removeFromRack = useAppStore((s) => s.removeFromRack);
   const moveInRack = useAppStore((s) => s.moveInRack);
+  const batchMoveInRack = useAppStore((s) => s.batchMoveInRack);
   const addWire = useAppStore((s) => s.addWire);
   const removeWire = useAppStore((s) => s.removeWire);
   const selectWires = useAppStore((s) => s.selectWires);
@@ -399,11 +402,16 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
       didDragRef.current = false;
       pointerDownShiftRef.current = e.shiftKey;
       const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
+      const curSelected = useAppStore.getState().selectedPlacementIds;
+      const isAlreadySelected = curSelected.includes(placementId);
+      const isMulti = isAlreadySelected && curSelected.length > 1 && !e.shiftKey;
       setDrag({
         placementId,
         moduleId,
         offsetHP: pt.x / HP_WIDTH - positionHP,
+        startHP: positionHP,
         startRow: row,
+        isMulti,
       });
       setDragPreviewHP(positionHP);
       setDragPreviewRow(row);
@@ -533,7 +541,21 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
     (e: React.PointerEvent<SVGSVGElement>) => {
       if (drag) {
         if (didDragRef.current) {
-          moveInRack(drag.placementId, dragPreviewHP, dragPreviewRow);
+          if (drag.isMulti) {
+            const deltaHP = dragPreviewHP - drag.startHP;
+            const deltaRow = dragPreviewRow - drag.startRow;
+            const state = useAppStore.getState();
+            const moves = state.selectedPlacementIds
+              .map((id) => {
+                const p = state.rack.placements.find((pl) => pl.id === id);
+                if (!p) return null;
+                return { placementId: id, positionHP: p.positionHP + deltaHP, row: p.row + deltaRow };
+              })
+              .filter((m): m is NonNullable<typeof m> => m !== null);
+            batchMoveInRack(moves);
+          } else {
+            moveInRack(drag.placementId, dragPreviewHP, dragPreviewRow);
+          }
         } else {
           // Click without drag — select/deselect the module, cancel any wire in progress
           const pid = drag.placementId;
@@ -601,6 +623,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
       dragPreviewHP,
       dragPreviewRow,
       moveInRack,
+      batchMoveInRack,
       knobDrag,
       selectWires,
       selectPlacements,
@@ -830,8 +853,9 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                 {rack.placements
                   .filter((p) => {
                     const isDraggingThis = drag?.placementId === p.id;
-                    // Show dragged module in its preview row, not its stored row
+                    const isMultiDragging = drag?.isMulti && selectedPlacementIds.includes(p.id) && p.id !== drag.placementId;
                     if (isDraggingThis) return dragPreviewRow === row;
+                    if (isMultiDragging) return p.row + (dragPreviewRow - drag!.startRow) === row;
                     return p.row === row;
                   })
                   .map((placement) => {
@@ -840,19 +864,22 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                     );
                     if (!mod) return null;
                     const isDragging = drag?.placementId === placement.id;
+                    const isMultiDragging = drag?.isMulti && selectedPlacementIds.includes(placement.id) && !isDragging;
                     const isSelected = selectedPlacementIds.includes(
                       placement.id,
                     );
                     const displayHP = isDragging
                       ? dragPreviewHP
-                      : placement.positionHP;
+                      : isMultiDragging
+                        ? placement.positionHP + (dragPreviewHP - drag!.startHP)
+                        : placement.positionHP;
                     const modX = displayHP * HP_WIDTH;
                     const modWidth = mod.widthHP * HP_WIDTH;
                     return (
                       <g
                         key={placement.id}
                         transform={`translate(${modX}, ${RAIL_HEIGHT})`}
-                        opacity={isDragging ? 0.7 : 1}
+                        opacity={isDragging || isMultiDragging ? 0.7 : 1}
                         onDoubleClick={(e) => {
                           e.stopPropagation();
                           openModuleForEditing(mod);
@@ -868,7 +895,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                           )
                         }
                         style={{
-                          cursor: isDragging
+                          cursor: isDragging || isMultiDragging
                             ? "grabbing"
                             : isSelected
                               ? "grab"
@@ -882,7 +909,7 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
                           height={PANEL_HEIGHT}
                           fill={panelBg}
                           stroke={
-                            isDragging
+                            isDragging || isMultiDragging
                               ? "#fa4"
                               : isSelected
                                 ? "#4af"
@@ -1133,13 +1160,21 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
           })}
 
           <WireLayer
-            dragOverride={
+            dragOverrides={
               drag
-                ? {
-                    placementId: drag.placementId,
-                    positionHP: dragPreviewHP,
-                    row: dragPreviewRow,
-                  }
+                ? drag.isMulti
+                  ? (() => {
+                      const deltaHP = dragPreviewHP - drag.startHP;
+                      const deltaRow = dragPreviewRow - drag.startRow;
+                      return selectedPlacementIds
+                        .map((id) => {
+                          const p = rack.placements.find((pl) => pl.id === id);
+                          if (!p) return null;
+                          return { placementId: id, positionHP: p.positionHP + deltaHP, row: p.row + deltaRow };
+                        })
+                        .filter((o): o is NonNullable<typeof o> => o !== null);
+                    })()
+                  : [{ placementId: drag.placementId, positionHP: dragPreviewHP, row: dragPreviewRow }]
                 : null
             }
           />

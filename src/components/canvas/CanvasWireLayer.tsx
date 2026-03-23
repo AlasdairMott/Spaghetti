@@ -10,7 +10,7 @@ function resolveEndpoint(
   endpoint: RackWireEndpoint,
   placements: CanvasPlacement[],
   modules: Module[],
-  dragOverride?: CanvasDragOverride | null,
+  dragOverrides?: CanvasDragOverride[] | null,
 ): { x: number; y: number } | null {
   const placement = placements.find((p) => p.id === endpoint.placementId);
   if (!placement) return null;
@@ -19,8 +19,9 @@ function resolveEndpoint(
   const comp = mod.components.find((c) => c.id === endpoint.componentId);
   if (!comp) return null;
   const mm = gridToMm(comp.position);
-  const x = (dragOverride?.placementId === endpoint.placementId) ? dragOverride.x : placement.x;
-  const y = (dragOverride?.placementId === endpoint.placementId) ? dragOverride.y : placement.y;
+  const override = dragOverrides?.find((o) => o.placementId === endpoint.placementId);
+  const x = override ? override.x : placement.x;
+  const y = override ? override.y : placement.y;
   return { x: x + mm.x, y: y + mm.y };
 }
 
@@ -42,12 +43,12 @@ interface WireLineProps {
   placements: CanvasPlacement[];
   modules: Module[];
   onClick: (wireId: string, shiftKey: boolean) => void;
-  dragOverride?: CanvasDragOverride | null;
+  dragOverrides?: CanvasDragOverride[] | null;
 }
 
-const WireLine = memo(function WireLine({ wire, isSelected, placements, modules, onClick, dragOverride }: WireLineProps) {
-  const from = resolveEndpoint(wire.from, placements, modules, dragOverride);
-  const to = resolveEndpoint(wire.to, placements, modules, dragOverride);
+const WireLine = memo(function WireLine({ wire, isSelected, placements, modules, onClick, dragOverrides }: WireLineProps) {
+  const from = resolveEndpoint(wire.from, placements, modules, dragOverrides);
+  const to = resolveEndpoint(wire.to, placements, modules, dragOverrides);
   if (!from || !to) return null;
 
   const path = catenaryPath(from.x, from.y, to.x, to.y);
@@ -117,7 +118,7 @@ export interface CanvasDragOverride {
   y: number;
 }
 
-export function CanvasWireLayer({ dragOverride }: { dragOverride?: CanvasDragOverride | null }) {
+export function CanvasWireLayer({ dragOverrides }: { dragOverrides?: CanvasDragOverride[] | null }) {
   const wires = useAppStore((s) => s.canvas.wires ?? EMPTY_WIRES);
   const placements = useAppStore((s) => s.canvas.placements);
   const modules = useAppStore((s) => s.modules);
@@ -138,15 +139,15 @@ export function CanvasWireLayer({ dragOverride }: { dragOverride?: CanvasDragOve
     }
   };
 
+  const draggedIds = dragOverrides ? new Set(dragOverrides.map((o) => o.placementId)) : null;
+
   return (
     <g>
       {wires.map((wire) => {
-        // Only pass dragOverride to wires that touch the dragged module;
-        // other WireLines keep stable props and stay memoised.
-        const wireOverride = dragOverride && (
-          wire.from.placementId === dragOverride.placementId ||
-          wire.to.placementId === dragOverride.placementId
-        ) ? dragOverride : null;
+        const wireOverrides = draggedIds && (
+          draggedIds.has(wire.from.placementId) ||
+          draggedIds.has(wire.to.placementId)
+        ) ? dragOverrides : null;
         return (
           <WireLine
             key={wire.id}
@@ -155,7 +156,7 @@ export function CanvasWireLayer({ dragOverride }: { dragOverride?: CanvasDragOve
             placements={placements}
             modules={modules}
             onClick={handleWireClick}
-            dragOverride={wireOverride}
+            dragOverrides={wireOverrides}
           />
         );
       })}

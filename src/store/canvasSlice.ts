@@ -13,6 +13,7 @@ export interface CanvasSlice {
   canvasPlaceModule: (moduleId: string, x: number, y: number) => void;
   canvasRemovePlacement: (placementId: string) => void;
   canvasMoveModule: (placementId: string, x: number, y: number) => void;
+  canvasBatchMoveModules: (moves: Array<{ placementId: string; x: number; y: number }>) => void;
   canvasAddWire: (from: RackWireEndpoint, to: RackWireEndpoint) => void;
   canvasRemoveWire: (id: string) => void;
   canvasSelectWires: (ids: string[]) => void;
@@ -164,6 +165,20 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
         canvas: {
           ...state.canvas,
           placements: [...others, { ...existing, x: snapped.x, y: snapped.y }],
+        },
+      };
+    }),
+
+  canvasBatchMoveModules: (moves) =>
+    set((state) => {
+      const moveMap = new Map(moves.map((m) => [m.placementId, m]));
+      return {
+        canvas: {
+          ...state.canvas,
+          placements: state.canvas.placements.map((p) => {
+            const move = moveMap.get(p.id);
+            return move ? { ...p, x: move.x, y: move.y } : p;
+          }),
         },
       };
     }),
