@@ -30,7 +30,7 @@ export interface UiSlice {
 export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (
   set,
 ) => ({
-  mode: "designer",
+  mode: "rack",
   renderMode: "wireframe",
   theme: (localStorage.getItem("spaghetti-theme") as ThemeMode) || "dark",
   zoom: 0.33,
