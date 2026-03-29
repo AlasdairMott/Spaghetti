@@ -22,7 +22,7 @@ import {
 } from "./CanvasWireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import { snapPosition } from "../../store/canvasSlice";
-import { useKnobDrag } from "../../hooks/useKnobDrag";
+import { useKnobDrag, randomizeKnobs } from "../../hooks/useKnobDrag";
 import type { RackWireEndpoint } from "../../models/types";
 
 const EDGE_INSET = 2;
@@ -279,6 +279,16 @@ export function CanvasCanvas({
         canvasSelectWires([]);
         canvasSelectPlacements([]);
       }
+      if (e.key === "r" && (e.metaKey || e.ctrlKey)) {
+        if (canvasSelectedPlacementIds.length > 0) {
+          e.preventDefault();
+          randomizeKnobs(canvasSelectedPlacementIds, canvas.placements, modules, (pid, cid, angle) => {
+            canvasSetKnobAngle(pid, cid, angle);
+            onKnobChange?.(pid, cid, angle);
+          });
+        }
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         if (canvasSelectedWireIds.length > 0) {
           for (const id of canvasSelectedWireIds) canvasRemoveWire(id);
@@ -301,6 +311,10 @@ export function CanvasCanvas({
     canvasSelectedPlacementIds,
     canvasRemovePlacement,
     wireDrag,
+    canvas.placements,
+    modules,
+    canvasSetKnobAngle,
+    onKnobChange,
   ]);
 
   const findNearestJack = useCallback(

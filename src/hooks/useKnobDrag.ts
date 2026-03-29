@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import type { Module } from "../models/types";
 
 interface KnobDragState {
   placementId: string;
@@ -55,4 +56,23 @@ export function useKnobDrag(
   );
 
   return { knobDrag, handlePotPointerDown, knobDragAngleRef: angleRef };
+}
+
+/** Randomize all pot knobs for the given placement IDs. */
+export function randomizeKnobs(
+  placementIds: string[],
+  placements: Array<{ id: string; moduleId: string }>,
+  modules: Module[],
+  onAngleChange: (placementId: string, componentId: string, angle: number) => void,
+) {
+  for (const pid of placementIds) {
+    const placement = placements.find((p) => p.id === pid);
+    if (!placement) continue;
+    const mod = modules.find((m) => m.id === placement.moduleId);
+    if (!mod) continue;
+    for (const comp of mod.components) {
+      if (comp.kind !== "pot") continue;
+      onAngleChange(pid, comp.id, Math.random() * 300);
+    }
+  }
 }

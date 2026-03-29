@@ -17,7 +17,7 @@ import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
 import { WireLayer, PreviewWire } from "./WireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
-import { useKnobDrag } from "../../hooks/useKnobDrag";
+import { useKnobDrag, randomizeKnobs } from "../../hooks/useKnobDrag";
 import type { RackWireEndpoint } from "../../models/types";
 
 const ROW_GAP = 5;
@@ -281,6 +281,16 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
         selectWires([]);
         selectPlacements([]);
       }
+      if (e.key === "r" && (e.metaKey || e.ctrlKey)) {
+        if (selectedPlacementIds.length > 0) {
+          e.preventDefault();
+          randomizeKnobs(selectedPlacementIds, rack.placements, modules, (pid, cid, angle) => {
+            setKnobAngle(pid, cid, angle);
+            onKnobChange?.(pid, cid, angle);
+          });
+        }
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedWireIds.length > 0) {
           for (const id of selectedWireIds) removeWire(id);
@@ -302,6 +312,10 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
     selectedPlacementIds,
     removeFromRack,
     wireDrag,
+    rack.placements,
+    modules,
+    setKnobAngle,
+    onKnobChange,
   ]);
 
   const findNearestJack = useCallback(
