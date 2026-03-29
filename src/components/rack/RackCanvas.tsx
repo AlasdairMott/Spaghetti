@@ -17,6 +17,7 @@ import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
 import { WireLayer, PreviewWire } from "./WireLayer";
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
+import { useKnobDrag } from "../../hooks/useKnobDrag";
 import type { RackWireEndpoint } from "../../models/types";
 
 const ROW_GAP = 5;
@@ -31,13 +32,6 @@ interface DragState {
   startHP: number;
   startRow: number;
   isMulti: boolean;
-}
-
-interface KnobDragState {
-  placementId: string;
-  componentId: string;
-  startY: number;
-  startAngle: number;
 }
 
 interface WireDragState {
@@ -191,8 +185,25 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
     x: number;
     y: number;
   } | null>(null);
-  const [knobDrag, setKnobDrag] = useState<KnobDragState | null>(null);
-  const knobDragAngleRef = useRef<number>(150);
+  const getKnobAngle = useCallback(
+    (placementId: string, componentId: string): number => {
+      const knobStates = rack.knobStates ?? [];
+      return (
+        knobStates.find(
+          (k) => k.placementId === placementId && k.componentId === componentId,
+        )?.angle ?? 150
+      );
+    },
+    [rack.knobStates],
+  );
+
+  const { knobDrag, handlePotPointerDown } = useKnobDrag(
+    getKnobAngle,
+    (pid: string, cid: string, angle: number) => {
+      onKnobChange?.(pid, cid, angle);
+      setKnobAngle(pid, cid, angle);
+    },
+  );
 
   const didDragRef = useRef(false);
   const pointerDownShiftRef = useRef(false);
@@ -503,16 +514,6 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
         const nearest = findNearestJack(pt.x, pt.y);
         setHoveredJack(nearest);
       }
-      if (knobDrag) {
-        const deltaY = knobDrag.startY - e.clientY;
-        const newAngle = Math.max(
-          0,
-          Math.min(300, knobDrag.startAngle + deltaY * 1.5),
-        );
-        knobDragAngleRef.current = newAngle;
-        onKnobChange?.(knobDrag.placementId, knobDrag.componentId, newAngle);
-        setKnobAngle(knobDrag.placementId, knobDrag.componentId, newAngle);
-      }
       // Update hover when not dragging anything
       if (!drag && !wireStart && !wireDrag && !knobDrag && svgRef.current) {
         const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
@@ -530,8 +531,6 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
       rowHeight,
       wireStart,
       knobDrag,
-      onKnobChange,
-      setKnobAngle,
       wireDrag,
       findNearestJack,
     ],
@@ -576,7 +575,6 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
         return;
       }
       if (knobDrag) {
-        setKnobDrag(null);
         return;
       }
       if (wireDrag && svgRef.current) {
@@ -635,38 +633,6 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
     ],
   );
 
-  const handlePotPointerDown = useCallback(
-    (
-      e: React.PointerEvent<SVGElement>,
-      placementId: string,
-      componentId: string,
-    ) => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      const knobStates = rack.knobStates ?? [];
-      const existing = knobStates.find(
-        (k) => k.placementId === placementId && k.componentId === componentId,
-      );
-      const startAngle = existing?.angle ?? 150;
-      knobDragAngleRef.current = startAngle;
-
-      setKnobDrag({ placementId, componentId, startY: e.clientY, startAngle });
-      (e.target as SVGElement).setPointerCapture(e.pointerId);
-    },
-    [rack.knobStates],
-  );
-
-  const getKnobAngle = useCallback(
-    (placementId: string, componentId: string): number => {
-      const knobStates = rack.knobStates ?? [];
-      return (
-        knobStates.find(
-          (k) => k.placementId === placementId && k.componentId === componentId,
-        )?.angle ?? 150
-      );
-    },
-    [rack.knobStates],
-  );
 
   const isButtonPressed = useCallback(
     (placementId: string, componentId: string): boolean => {
@@ -703,6 +669,8 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
           onDrop={handleDrop}
           onDoubleClick={(e) => {
             if (!svgRef.current) return;
+            const target = e.target as Element;
+            if (target !== e.currentTarget && target.getAttribute("data-bg") !== "true") return;
             const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
             setSearchPopup({
               screenX: e.clientX,
