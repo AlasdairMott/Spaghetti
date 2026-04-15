@@ -35,6 +35,7 @@ export function PanelCanvas() {
   const theme = useAppStore((s) => s.theme);
   const isLight = theme === "light";
   const selectComponents = useAppStore((s) => s.selectComponents);
+  const selectItems = useAppStore((s) => s.selectItems);
   const addRect = useAppStore((s) => s.addRect);
   const [previewPos, setPreviewPos] = useState<GridPosition | null>(null);
   const [cursorMm, setCursorMm] = useState<{ x: number; y: number } | null>(
@@ -116,20 +117,37 @@ export function PanelCanvas() {
       if (dx < 1 && dy < 1) {
         handleCanvasClick(marquee.x1, marquee.y1, e.shiftKey);
       } else {
-        // Select all components within marquee bounds
-        const ids = editingModule.components
+        // Select all items within marquee bounds
+        const compIds = editingModule.components
           .filter((comp) => {
             const mm = gridToMm(comp.position);
             return mm.x >= minX && mm.x <= maxX && mm.y >= minY && mm.y <= maxY;
           })
           .map((c) => c.id);
+        const connIds = (editingModule.connections ?? [])
+          .filter((c) =>
+            c.from.x >= minX && c.from.x <= maxX && c.from.y >= minY && c.from.y <= maxY &&
+            c.to.x >= minX && c.to.x <= maxX && c.to.y >= minY && c.to.y <= maxY
+          )
+          .map((c) => c.id);
+        const rIds = (editingModule.rects ?? [])
+          .filter((r) => {
+            const rx1 = Math.min(r.from.x, r.to.x);
+            const rx2 = Math.max(r.from.x, r.to.x);
+            const ry1 = Math.min(r.from.y, r.to.y);
+            const ry2 = Math.max(r.from.y, r.to.y);
+            return rx1 >= minX && rx2 <= maxX && ry1 >= minY && ry2 <= maxY;
+          })
+          .map((r) => r.id);
         if (e.shiftKey) {
-          // Add marquee results to existing selection
-          const existing = useAppStore.getState().selectedComponentIds;
-          const merged = [...new Set([...existing, ...ids])];
-          selectComponents(merged);
+          const s = useAppStore.getState();
+          selectItems(
+            [...new Set([...s.selectedComponentIds, ...compIds])],
+            [...new Set([...s.selectedConnectionIds, ...connIds])],
+            [...new Set([...s.selectedRectIds, ...rIds])],
+          );
         } else {
-          selectComponents(ids);
+          selectItems(compIds, connIds, rIds);
         }
       }
       setMarquee(null);
@@ -204,7 +222,7 @@ export function PanelCanvas() {
           {editingModule.name}
         </text>
         <RectLayer svgRef={svgRef} />
-        <ConnectionLayer />
+        <ConnectionLayer svgRef={svgRef} />
         <ComponentLayer svgRef={svgRef} />
         <SelectionOverlay />
         {marqueeRect && marqueeRect.width > 1 && (

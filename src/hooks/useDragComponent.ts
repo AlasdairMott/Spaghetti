@@ -1,14 +1,19 @@
 import { useCallback, useRef } from "react";
 import { useAppStore } from "../store";
 import { snapToGrid } from "../utils/grid";
+import { GRID_X, GRID_Y } from "../constants/grid";
 import { screenToSvg } from "../utils/svg";
 
 export function useDragComponent() {
   const moveComponent = useAppStore((s) => s.moveComponent);
   const moveComponentsByDelta = useAppStore((s) => s.moveComponentsByDelta);
+  const moveConnectionsByDelta = useAppStore((s) => s.moveConnectionsByDelta);
+  const moveRectsByDelta = useAppStore((s) => s.moveRectsByDelta);
   const selectComponent = useAppStore((s) => s.selectComponent);
-  const selectComponents = useAppStore((s) => s.selectComponents);
+  const selectItems = useAppStore((s) => s.selectItems);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
+  const selectedConnectionIds = useAppStore((s) => s.selectedConnectionIds);
+  const selectedRectIds = useAppStore((s) => s.selectedRectIds);
   const pushSnapshot = useAppStore((s) => s.pushSnapshot);
   const duplicateComponent = useAppStore((s) => s.duplicateComponent);
   const activeTool = useAppStore((s) => s.activeTool);
@@ -39,16 +44,16 @@ export function useDragComponent() {
         }
       } else {
         const isInSelection = selectedComponentIds.includes(componentId);
+        const totalSelected = selectedComponentIds.length + selectedConnectionIds.length + selectedRectIds.length;
         if (e.shiftKey) {
-          // Shift+click: toggle component in/out of selection
-          if (isInSelection) {
-            selectComponents(selectedComponentIds.filter((id) => id !== componentId));
-          } else {
-            selectComponents([...selectedComponentIds, componentId]);
-          }
+          // Shift+click: toggle component in/out of selection, preserve other types
+          const compIds = isInSelection
+            ? selectedComponentIds.filter((id) => id !== componentId)
+            : [...selectedComponentIds, componentId];
+          selectItems(compIds, selectedConnectionIds, selectedRectIds);
           dragId.current = componentId;
           dragMulti.current = true;
-        } else if (isInSelection && selectedComponentIds.length > 1) {
+        } else if (isInSelection && totalSelected > 1) {
           // Clicking a component that's part of multi-selection: drag all
           dragId.current = componentId;
           dragMulti.current = true;
@@ -62,7 +67,7 @@ export function useDragComponent() {
 
       (e.target as SVGElement).setPointerCapture(e.pointerId);
     },
-    [activeTool, selectComponent, selectComponents, selectedComponentIds, pushSnapshot, duplicateComponent]
+    [activeTool, selectComponent, selectItems, selectedComponentIds, selectedConnectionIds, selectedRectIds, pushSnapshot, duplicateComponent]
   );
 
   const handleComponentPointerMove = useCallback(
@@ -77,12 +82,16 @@ export function useDragComponent() {
 
       if (dragMulti.current) {
         moveComponentsByDelta(selectedComponentIds, deltaX, deltaY);
+        const dxMm = deltaX * GRID_X;
+        const dyMm = deltaY * GRID_Y;
+        if (selectedConnectionIds.length > 0) moveConnectionsByDelta(selectedConnectionIds, dxMm, dyMm);
+        if (selectedRectIds.length > 0) moveRectsByDelta(selectedRectIds, dxMm, dyMm);
       } else {
         moveComponent(dragId.current, newGrid);
       }
       lastGrid.current = newGrid;
     },
-    [moveComponent, moveComponentsByDelta, selectedComponentIds]
+    [moveComponent, moveComponentsByDelta, moveConnectionsByDelta, moveRectsByDelta, selectedComponentIds, selectedConnectionIds, selectedRectIds]
   );
 
   const handleComponentPointerUp = useCallback(

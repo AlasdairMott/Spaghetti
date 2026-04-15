@@ -16,6 +16,8 @@ export function DesignerView() {
   const removeRect = useAppStore((s) => s.removeRect);
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const selectedConnectionId = useAppStore((s) => s.selectedConnectionId);
+  const selectedConnectionIds = useAppStore((s) => s.selectedConnectionIds);
+  const selectedRectIds = useAppStore((s) => s.selectedRectIds);
   const selectComponent = useAppStore((s) => s.selectComponent);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
@@ -69,8 +71,14 @@ export function DesignerView() {
         case "backspace":
           if (selectedComponentIds.length > 0) {
             selectedComponentIds.forEach((id) => removeComponent(id));
+          }
+          if (selectedConnectionIds.length > 0) {
+            selectedConnectionIds.forEach((id) => removeConnection(id));
           } else if (selectedConnectionId) {
             removeConnection(selectedConnectionId);
+          }
+          if (selectedRectIds.length > 0) {
+            selectedRectIds.forEach((id) => removeRect(id));
           } else if (selectedRectId) {
             removeRect(selectedRectId);
           }
@@ -93,7 +101,9 @@ export function DesignerView() {
     removeRect,
     selectedComponentIds,
     selectedConnectionId,
+    selectedConnectionIds,
     selectedRectId,
+    selectedRectIds,
     selectComponent,
     undo,
     redo,

@@ -63,6 +63,7 @@ export function useToolAction() {
   const selectedComponentIds = useAppStore((s) => s.selectedComponentIds);
   const selectConnection = useAppStore((s) => s.selectConnection);
   const selectRect = useAppStore((s) => s.selectRect);
+  const selectItems = useAppStore((s) => s.selectItems);
 
   const [lineStart, setLineStart] = useState<MmPoint | null>(null);
   const startOffsetRef = useRef(0);
@@ -121,13 +122,11 @@ export function useToolAction() {
           }
           if (hitId) {
             if (shiftKey) {
-              // Toggle in/out of current selection
-              const current = selectedComponentIds;
-              if (current.includes(hitId)) {
-                selectComponents(current.filter((id) => id !== hitId));
-              } else {
-                selectComponents([...current, hitId]);
-              }
+              const s = useAppStore.getState();
+              const compIds = s.selectedComponentIds.includes(hitId)
+                ? s.selectedComponentIds.filter((id) => id !== hitId)
+                : [...s.selectedComponentIds, hitId];
+              selectItems(compIds, s.selectedConnectionIds, s.selectedRectIds);
             } else {
               selectComponent(hitId);
             }
@@ -145,7 +144,15 @@ export function useToolAction() {
             }
           }
           if (hitConnId) {
-            selectConnection(hitConnId);
+            if (shiftKey) {
+              const s = useAppStore.getState();
+              const connIds = s.selectedConnectionIds.includes(hitConnId)
+                ? s.selectedConnectionIds.filter((id) => id !== hitConnId)
+                : [...s.selectedConnectionIds, hitConnId];
+              selectItems(s.selectedComponentIds, connIds, s.selectedRectIds);
+            } else {
+              selectConnection(hitConnId);
+            }
             break;
           }
 
@@ -159,7 +166,15 @@ export function useToolAction() {
             }
           }
           if (hitRectId) {
-            selectRect(hitRectId);
+            if (shiftKey) {
+              const s = useAppStore.getState();
+              const rIds = s.selectedRectIds.includes(hitRectId)
+                ? s.selectedRectIds.filter((id) => id !== hitRectId)
+                : [...s.selectedRectIds, hitRectId];
+              selectItems(s.selectedComponentIds, s.selectedConnectionIds, rIds);
+            } else {
+              selectRect(hitRectId);
+            }
           } else if (!shiftKey) {
             selectComponent(null);
           }
@@ -167,7 +182,7 @@ export function useToolAction() {
         }
       }
     },
-    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectComponents, selectedComponentIds, selectConnection, selectRect, lineStart]
+    [activeTool, editingModule, addComponent, addConnection, selectComponent, selectComponents, selectedComponentIds, selectConnection, selectRect, selectItems, lineStart]
   );
 
   return { handleCanvasClick, lineStart };

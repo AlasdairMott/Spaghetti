@@ -10,7 +10,9 @@ export interface EditorSlice {
   selectedComponentId: string | null;
   selectedComponentIds: string[];
   selectedConnectionId: string | null;
+  selectedConnectionIds: string[];
   selectedRectId: string | null;
+  selectedRectIds: string[];
   _history: Module[];
   _future: Module[];
 
@@ -23,6 +25,7 @@ export interface EditorSlice {
   selectComponents: (ids: string[]) => void;
   selectConnection: (id: string | null) => void;
   selectRect: (id: string | null) => void;
+  selectItems: (componentIds: string[], connectionIds: string[], rectIds: string[]) => void;
 
   addRect: (from: MmPoint, to: MmPoint) => void;
   updateRect: (id: string, updates: Partial<PanelRect>) => void;
@@ -39,6 +42,8 @@ export interface EditorSlice {
   removeComponents: (ids: string[]) => void;
   moveComponent: (id: string, position: GridPosition) => void;
   moveComponentsByDelta: (ids: string[], deltaX: number, deltaY: number) => void;
+  moveConnectionsByDelta: (ids: string[], dxMm: number, dyMm: number) => void;
+  moveRectsByDelta: (ids: string[], dxMm: number, dyMm: number) => void;
   duplicateComponent: (id: string) => string | null;
   pushSnapshot: () => void;
 
@@ -67,7 +72,9 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
   selectedComponentId: null,
   selectedComponentIds: [],
   selectedConnectionId: null,
+  selectedConnectionIds: [],
   selectedRectId: null,
+  selectedRectIds: [],
   _history: [],
   _future: [],
 
@@ -79,6 +86,9 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
       selectedComponentId: null,
       selectedComponentIds: [],
       selectedConnectionId: null,
+      selectedConnectionIds: [],
+      selectedRectId: null,
+      selectedRectIds: [],
       activeTool: "select",
       _history: [],
       _future: [],
@@ -97,23 +107,35 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
       selectedComponentId: null,
       selectedComponentIds: [],
       selectedConnectionId: null,
+      selectedConnectionIds: [],
+      selectedRectId: null,
+      selectedRectIds: [],
       activeTool: "select",
       _history: [],
       _future: [],
     }),
 
   closeEditor: () =>
-    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], selectedConnectionId: null, selectedRectId: null, activeTool: "select", _history: [], _future: [] }),
+    set({ editingModule: null, selectedComponentId: null, selectedComponentIds: [], selectedConnectionId: null, selectedConnectionIds: [], selectedRectId: null, selectedRectIds: [], activeTool: "select", _history: [], _future: [] }),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
 
-  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedConnectionId: null, selectedRectId: null }),
+  selectComponent: (id) => set({ selectedComponentId: id, selectedComponentIds: id ? [id] : [], selectedConnectionId: null, selectedConnectionIds: [], selectedRectId: null, selectedRectIds: [] }),
 
-  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null, selectedConnectionId: null, selectedRectId: null }),
+  selectComponents: (ids) => set({ selectedComponentIds: ids, selectedComponentId: ids.length === 1 ? ids[0] : null, selectedConnectionId: null, selectedConnectionIds: [], selectedRectId: null, selectedRectIds: [] }),
 
-  selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: null, selectedComponentIds: [], selectedRectId: null }),
+  selectConnection: (id) => set({ selectedConnectionId: id, selectedConnectionIds: id ? [id] : [], selectedComponentId: null, selectedComponentIds: [], selectedRectId: null, selectedRectIds: [] }),
 
-  selectRect: (id) => set({ selectedRectId: id, selectedConnectionId: null, selectedComponentId: null, selectedComponentIds: [] }),
+  selectRect: (id) => set({ selectedRectId: id, selectedRectIds: id ? [id] : [], selectedConnectionId: null, selectedConnectionIds: [], selectedComponentId: null, selectedComponentIds: [] }),
+
+  selectItems: (componentIds, connectionIds, rectIds) => set({
+    selectedComponentIds: componentIds,
+    selectedComponentId: componentIds.length === 1 ? componentIds[0] : null,
+    selectedConnectionIds: connectionIds,
+    selectedConnectionId: connectionIds.length === 1 ? connectionIds[0] : null,
+    selectedRectIds: rectIds,
+    selectedRectId: rectIds.length === 1 ? rectIds[0] : null,
+  }),
 
   addRect: (from, to) =>
     set((state) => {
@@ -123,7 +145,9 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         ...pushHistory(state),
         editingModule: { ...state.editingModule, rects: [...(state.editingModule.rects ?? []), rect] },
         selectedRectId: rect.id,
+        selectedRectIds: [rect.id],
         selectedConnectionId: null,
+        selectedConnectionIds: [],
         selectedComponentId: null,
         selectedComponentIds: [],
       };
@@ -305,6 +329,42 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
       };
     }),
 
+  moveConnectionsByDelta: (ids, dxMm, dyMm) =>
+    set((state) => {
+      if (!state.editingModule || ids.length === 0) return state;
+      const idSet = new Set(ids);
+      return {
+        editingModule: {
+          ...state.editingModule,
+          connections: (state.editingModule.connections ?? []).map((c) =>
+            idSet.has(c.id) ? {
+              ...c,
+              from: { x: c.from.x + dxMm, y: c.from.y + dyMm },
+              to: { x: c.to.x + dxMm, y: c.to.y + dyMm },
+            } : c
+          ),
+        },
+      };
+    }),
+
+  moveRectsByDelta: (ids, dxMm, dyMm) =>
+    set((state) => {
+      if (!state.editingModule || ids.length === 0) return state;
+      const idSet = new Set(ids);
+      return {
+        editingModule: {
+          ...state.editingModule,
+          rects: (state.editingModule.rects ?? []).map((r) =>
+            idSet.has(r.id) ? {
+              ...r,
+              from: { x: r.from.x + dxMm, y: r.from.y + dyMm },
+              to: { x: r.to.x + dxMm, y: r.to.y + dyMm },
+            } : r
+          ),
+        },
+      };
+    }),
+
   duplicateComponent: (id) => {
     const state = get();
     if (!state.editingModule) return null;
@@ -348,8 +408,11 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
           connections: [...(state.editingModule.connections ?? []), conn],
         },
         selectedConnectionId: conn.id,
+        selectedConnectionIds: [conn.id],
         selectedComponentId: null,
         selectedComponentIds: [],
+        selectedRectId: null,
+        selectedRectIds: [],
       };
     }),
 
@@ -396,7 +459,9 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         selectedComponentId: null,
         selectedComponentIds: [],
         selectedConnectionId: null,
+        selectedConnectionIds: [],
         selectedRectId: null,
+        selectedRectIds: [],
       };
     }),
 
@@ -413,7 +478,9 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
         selectedComponentId: null,
         selectedComponentIds: [],
         selectedConnectionId: null,
+        selectedConnectionIds: [],
         selectedRectId: null,
+        selectedRectIds: [],
       };
     }),
 });

@@ -305,6 +305,7 @@ export function RectLayer({
 }) {
   const rects = useAppStore((s) => s.editingModule?.rects ?? EMPTY_RECTS);
   const selectedRectId = useAppStore((s) => s.selectedRectId);
+  const selectedRectIds = useAppStore((s) => s.selectedRectIds);
   const selectRect = useAppStore((s) => s.selectRect);
 
   return (
@@ -313,7 +314,7 @@ export function RectLayer({
         <RectItem
           key={rect.id}
           rect={rect}
-          isSelected={rect.id === selectedRectId}
+          isSelected={rect.id === selectedRectId || selectedRectIds.includes(rect.id)}
           onClick={selectRect}
           svgRef={svgRef}
         />
