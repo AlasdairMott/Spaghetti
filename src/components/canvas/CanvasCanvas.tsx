@@ -23,6 +23,7 @@ import {
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import { snapPosition } from "../../store/canvasSlice";
 import { useKnobDrag, randomizeKnobs } from "../../hooks/useKnobDrag";
+import { computeButtonLayout, resolveLabelLayout } from "../../utils/buttonLayout";
 import type { RackWireEndpoint } from "../../models/types";
 
 const EDGE_INSET = 2;
@@ -864,14 +865,21 @@ export function CanvasCanvas({
                   const buttonLeds = comp.buttonLedCount ?? 0;
                   const hasButtonLeds =
                     comp.kind === "button" && buttonLeds > 0;
-                  const labelY =
-                    comp.kind === "jack"
-                      ? -5
-                      : comp.kind === "pot"
-                        ? -8
-                        : hasButtonLeds
-                          ? 8
-                          : -5;
+                  const buttonLayout =
+                    comp.kind === "button"
+                      ? computeButtonLayout(buttonLeds, comp.buttonLedPosition ?? "above")
+                      : null;
+                  const defaultDist =
+                    comp.kind === "jack" ? 5 : comp.kind === "pot" ? 8 : 5;
+                  const labelLayout =
+                    comp.kind === "button"
+                      ? resolveLabelLayout(comp, 5)
+                      : {
+                          x: 0,
+                          y: -defaultDist,
+                          textAnchor: "middle" as const,
+                          rotation: comp.labelAngle ?? 0,
+                        };
                   return (
                     <g
                       key={comp.id}
@@ -903,43 +911,6 @@ export function CanvasCanvas({
                             pointerEvents="all"
                           />
                         </g>
-                      ) : hasButtonLeds ? (
-                        <g
-                          style={{ cursor: "pointer" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const newPressed = !isButtonPressed(
-                              placement.id,
-                              comp.id,
-                            );
-                            canvasToggleButton(placement.id, comp.id);
-                            onButtonToggle?.(placement.id, comp.id, newPressed);
-                          }}
-                        >
-                          {(buttonLeds === 1
-                            ? [0]
-                            : buttonLeds === 2
-                              ? [-2, 2]
-                              : [-2.5, 0, 2.5]
-                          ).map((lx, i) => (
-                            <g key={i} transform={`translate(${lx}, -2)`}>
-                              <LedShape
-                                lit={isButtonPressed(placement.id, comp.id)}
-                              />
-                            </g>
-                          ))}
-                          <g transform="translate(0, 2)">
-                            <ButtonShape stroke={compStroke} />
-                          </g>
-                          <rect
-                            x={-4}
-                            y={-5}
-                            width={8}
-                            height={10}
-                            fill="transparent"
-                            pointerEvents="all"
-                          />
-                        </g>
                       ) : (
                         <g
                           style={{ cursor: "pointer" }}
@@ -953,16 +924,28 @@ export function CanvasCanvas({
                             onButtonToggle?.(placement.id, comp.id, newPressed);
                           }}
                         >
-                          <ButtonShape
-                            stroke={
-                              isButtonPressed(placement.id, comp.id)
-                                ? "#aaf"
-                                : compStroke
-                            }
-                          />
+                          {buttonLayout?.ledPositions.map((p, i) => (
+                            <g key={i} transform={`translate(${p.x}, ${p.y})`}>
+                              <LedShape
+                                lit={isButtonPressed(placement.id, comp.id)}
+                              />
+                            </g>
+                          ))}
+                          <g
+                            transform={`translate(${buttonLayout?.buttonOffset.x ?? 0}, ${buttonLayout?.buttonOffset.y ?? 0})`}
+                          >
+                            <ButtonShape
+                              stroke={
+                                !hasButtonLeds &&
+                                isButtonPressed(placement.id, comp.id)
+                                  ? "#aaf"
+                                  : compStroke
+                              }
+                            />
+                          </g>
                           <rect
-                            x={-3}
-                            y={-3}
+                            x={(buttonLayout?.buttonOffset.x ?? 0) - 3}
+                            y={(buttonLayout?.buttonOffset.y ?? 0) - 3}
                             width={6}
                             height={6}
                             fill="transparent"
@@ -975,7 +958,13 @@ export function CanvasCanvas({
                           <LedShape />
                         </g>
                       )}
-                      <ComponentLabel component={comp} y={labelY} />
+                      <ComponentLabel
+                        component={comp}
+                        x={labelLayout.x}
+                        y={labelLayout.y}
+                        textAnchor={labelLayout.textAnchor}
+                        rotation={labelLayout.rotation}
+                      />
                     </g>
                   );
                 })}

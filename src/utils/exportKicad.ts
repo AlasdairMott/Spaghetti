@@ -6,7 +6,8 @@ import {
   GRID_Y,
   GRID_Y_OFFSET,
 } from "../constants/grid";
-import type { Connection, Module } from "../models/types";
+import { computeButtonLayout, resolveLabelLayout } from "./buttonLayout";
+import type { Connection, Module, PanelComponent } from "../models/types";
 
 const ARROW_HEIGHT = 1.5;
 const ARROW_WIDTH = 0.75;
@@ -136,11 +137,63 @@ function connectionItems(conn: Connection): string[] {
   return items;
 }
 
-function silkText(text: string, x: number, y: number, size: number): string {
+/**
+ * Push a label silkscreen for a component, honoring labelPosition / labelAngle.
+ * If labelPosition is unset, the label is placed at fallbackY (centered, no rotation).
+ */
+function pushLabel(
+  out: string[],
+  comp: PanelComponent,
+  cx: number,
+  cy: number,
+  fallbackY: number,
+) {
+  if (!comp.label) return;
+  // KiCad rotates CCW for positive angles; SVG/our model rotates CW. Negate.
+  if (!comp.labelPosition) {
+    out.push(
+      silkText(
+        comp.label,
+        cx,
+        fallbackY,
+        LABEL_FONT_SIZE,
+        -(comp.labelAngle ?? 0),
+      ),
+    );
+    return;
+  }
+  const layout = resolveLabelLayout(comp, 5);
+  const justify =
+    layout.textAnchor === "start"
+      ? "left"
+      : layout.textAnchor === "end"
+        ? "right"
+        : null;
+  out.push(
+    silkText(
+      comp.label,
+      cx + layout.x,
+      cy + layout.y,
+      LABEL_FONT_SIZE,
+      -layout.rotation,
+      justify,
+    ),
+  );
+}
+
+function silkText(
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+  angle: number = 0,
+  justify: "left" | "right" | null = null,
+): string {
   const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const justifyLine = justify ? `      (justify ${justify})\n` : "";
   return [
     `  (gr_text "${escaped}"`,
-    `    (at ${f(x)} ${f(y)} 0)`,
+    `    (at ${f(x)} ${f(y)} ${f(angle)})`,
     `    (layer "F.SilkS")`,
     `    (uuid "${uuid()}")`,
     `    (effects`,
@@ -149,9 +202,12 @@ function silkText(text: string, x: number, y: number, size: number): string {
     `        (size ${f(size)} ${f(size)})`,
     `        (thickness 0.15)`,
     `      )`,
+    justifyLine.length > 0 ? justifyLine.trimEnd() : null,
     `    )`,
     `  )`,
-  ].join("\n");
+  ]
+    .filter((l): l is string => l !== null)
+    .join("\n");
 }
 
 const LAYERS = `  (layers
@@ -340,44 +396,24 @@ export function exportPanelKicad(module: Module): void {
 
     if (comp.kind === "jack") {
       items.push(npthPad(pos.x, pos.y, JACK_HOLE_DIAMETER));
-      if (comp.label)
-        items.push(
-          silkText(comp.label, pos.x, pos.y - 5 - 0.8, LABEL_FONT_SIZE),
-        );
+      pushLabel(items, comp, pos.x, pos.y, pos.y - 5 - 0.8);
       if (comp.hasLed)
         items.push(npthPad(pos.x - 6.35, pos.y, LED_HOLE_DIAMETER));
     } else if (comp.kind === "pot") {
       items.push(npthPad(pos.x, pos.y, POT_HOLE_DIAMETER));
-      if (comp.label)
-        items.push(
-          silkText(comp.label, pos.x, pos.y - 8 - 0.8, LABEL_FONT_SIZE),
-        );
+      pushLabel(items, comp, pos.x, pos.y, pos.y - 8 - 0.8);
     } else if (comp.kind === "button") {
       const buttonLeds = comp.buttonLedCount ?? 0;
-      const hasLeds = buttonLeds > 0;
-      const buttonY = hasLeds ? pos.y + 2.88 : pos.y;
-      items.push(npthPad(pos.x, buttonY, BUTTON_HOLE_DIAMETER));
-      if (comp.label)
-        items.push(
-          silkText(
-            comp.label,
-            pos.x,
-            buttonY + (hasLeds ? 5 : -5),
-            LABEL_FONT_SIZE,
-          ),
-        );
-      if (hasLeds) {
-        const ledOffsets =
-          buttonLeds === 1
-            ? [0]
-            : buttonLeds === 2
-              ? [-2, 2]
-              : [-5.08, 0, 5.08];
-        for (const lx of ledOffsets) {
-          items.push(
-            npthPad(pos.x + lx, pos.y - 5.73 + 2.88, LED_HOLE_DIAMETER),
-          );
-        }
+      const ledPos = comp.buttonLedPosition ?? "above";
+      const layout = computeButtonLayout(buttonLeds, ledPos);
+      const buttonCx = pos.x + layout.buttonOffset.x;
+      const buttonCy = pos.y + layout.buttonOffset.y;
+      items.push(npthPad(buttonCx, buttonCy, BUTTON_HOLE_DIAMETER));
+      // Default label fallback Y depends on whether the button is shifted down for LEDs above
+      const fallbackY = layout.buttonOffset.y > 0 ? buttonCy + 5 : buttonCy - 5;
+      pushLabel(items, comp, buttonCx, buttonCy, fallbackY);
+      for (const led of layout.ledPositions) {
+        items.push(npthPad(pos.x + led.x, pos.y + led.y, LED_HOLE_DIAMETER));
       }
     }
   }

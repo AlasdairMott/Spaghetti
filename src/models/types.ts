@@ -23,8 +23,14 @@ export interface PanelComponent {
   labelColor?: LabelColor | null;
   /** Hex color when labelColor is "custom" */
   labelColorCustom?: string;
-  /** Number of LEDs above a button (only for kind="button") */
+  /** Number of LEDs on a button (only for kind="button") */
   buttonLedCount?: 0 | 1 | 2 | 3;
+  /** Where LEDs sit relative to the button (only for kind="button"). Default "above". */
+  buttonLedPosition?: "above" | "left" | "right";
+  /** Label position relative to the component. If absent, sensible default per component kind. */
+  labelPosition?: "above" | "below" | "left" | "right";
+  /** Label rotation in degrees. Default 0. */
+  labelAngle?: number;
   /** Jack direction: input, output, both, or headphones (only for kind="jack") */
   jackDirection?: "input" | "output" | "both" | "headphones";
   /** Minimum voltage in volts (only for kind="jack", default -10) */

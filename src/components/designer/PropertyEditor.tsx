@@ -3,6 +3,7 @@ import { useAppStore } from "../../store";
 import { gridToMm } from "../../utils/grid";
 import { HP_WIDTH, PANEL_HEIGHT } from "../../constants/grid";
 import { exportPanelKicad } from "../../utils/exportKicad";
+import { computeButtonLayout, resolveLabelLayout } from "../../utils/buttonLayout";
 import type { Module, PanelComponent } from "../../models/types";
 import { SidebarButton } from "../ui/SidebarButton";
 
@@ -11,6 +12,26 @@ const POT_HOLE_DIAMETER = 7.5;
 const BUTTON_HOLE_DIAMETER = 5.2;
 const LED_HOLE_DIAMETER = 3.4;
 
+/** Build an SVG <text> for a label honoring component labelPosition/labelAngle. */
+function svgLabel(
+  comp: PanelComponent,
+  cx: number,
+  cy: number,
+  fallbackY: number,
+): string {
+  if (!comp.label) return "";
+  // If the user set an explicit position, use it; otherwise place above at fallbackY
+  const layout = comp.labelPosition
+    ? resolveLabelLayout(comp, 5)
+    : { x: 0, y: fallbackY - cy, textAnchor: "middle" as const, rotation: comp.labelAngle ?? 0 };
+  const tx = cx + layout.x;
+  const ty = cy + layout.y;
+  const transform = layout.rotation
+    ? ` transform="rotate(${layout.rotation} ${tx.toFixed(3)} ${ty.toFixed(3)})"`
+    : "";
+  return `<text x="${tx.toFixed(3)}" y="${ty.toFixed(3)}" text-anchor="${layout.textAnchor}" font-size="2" font-family="sans-serif" fill="#555555"${transform}>${comp.label}</text>`;
+}
+
 function exportPanelSvg(module: Module) {
   const width = module.widthHP * HP_WIDTH;
   const height = PANEL_HEIGHT;
@@ -18,16 +39,14 @@ function exportPanelSvg(module: Module) {
 
   for (const comp of module.components) {
     const pos = gridToMm(comp.position);
-    const labelText = comp.label
-      ? `<text x="${pos.x.toFixed(3)}" y="${(pos.y - 3.5).toFixed(3)}" text-anchor="middle" font-size="2" font-family="sans-serif" fill="#555555">${comp.label}</text>`
-      : "";
 
     if (comp.kind === "jack") {
       const r = (JACK_HOLE_DIAMETER / 2).toFixed(3);
       holes.push(
         `<circle cx="${pos.x.toFixed(3)}" cy="${pos.y.toFixed(3)}" r="${r}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
       );
-      if (labelText) holes.push(labelText);
+      const lbl = svgLabel(comp, pos.x, pos.y, pos.y - 3.5);
+      if (lbl) holes.push(lbl);
       if (comp.hasLed) {
         holes.push(
           `<circle cx="${(pos.x - 6.35).toFixed(3)}" cy="${pos.y.toFixed(3)}" r="${(LED_HOLE_DIAMETER / 2).toFixed(3)}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
@@ -38,32 +57,26 @@ function exportPanelSvg(module: Module) {
       holes.push(
         `<circle cx="${pos.x.toFixed(3)}" cy="${pos.y.toFixed(3)}" r="${r}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
       );
-      if (labelText) holes.push(labelText);
+      const lbl = svgLabel(comp, pos.x, pos.y, pos.y - 3.5);
+      if (lbl) holes.push(lbl);
     } else if (comp.kind === "button") {
       const buttonLeds = comp.buttonLedCount ?? 0;
-      const hasLeds = buttonLeds > 0;
-      const buttonY = hasLeds ? pos.y + 2.607 : pos.y;
+      const ledPos = comp.buttonLedPosition ?? "above";
+      const layout = computeButtonLayout(buttonLeds, ledPos);
+      const buttonCx = pos.x + layout.buttonOffset.x;
+      const buttonCy = pos.y + layout.buttonOffset.y;
       const r = (BUTTON_HOLE_DIAMETER / 2).toFixed(3);
       holes.push(
-        `<circle cx="${pos.x.toFixed(3)}" cy="${buttonY.toFixed(3)}" r="${r}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
+        `<circle cx="${buttonCx.toFixed(3)}" cy="${buttonCy.toFixed(3)}" r="${r}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
       );
-      if (comp.label) {
+      // Default label position for a button: below if LEDs above, else above
+      const fallbackY = layout.buttonOffset.y > 0 ? buttonCy + 5.5 : buttonCy - 3.5;
+      const lbl = svgLabel(comp, buttonCx, buttonCy, fallbackY);
+      if (lbl) holes.push(lbl);
+      for (const led of layout.ledPositions) {
         holes.push(
-          `<text x="${pos.x.toFixed(3)}" y="${(buttonY + 2 + 1.5 + 2).toFixed(3)}" text-anchor="middle" font-size="2" font-family="sans-serif" fill="#555555">${comp.label}</text>`,
+          `<circle cx="${(pos.x + led.x).toFixed(3)}" cy="${(pos.y + led.y).toFixed(3)}" r="${(LED_HOLE_DIAMETER / 2).toFixed(3)}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
         );
-      }
-      if (hasLeds) {
-        const ledOffsets =
-          buttonLeds === 1
-            ? [0]
-            : buttonLeds === 2
-              ? [-2, 2]
-              : [-5.08, 0, 5.08];
-        for (const lx of ledOffsets) {
-          holes.push(
-            `<circle cx="${(pos.x + lx).toFixed(3)}" cy="${(pos.y - 5.73 + 2.607).toFixed(3)}" r="${(LED_HOLE_DIAMETER / 2).toFixed(3)}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
-          );
-        }
       }
     }
   }
@@ -327,24 +340,50 @@ function SingleComponentEditor({
       )}
 
       {component.kind === "button" && (
-        <div>
-          <span className={labelCls}>LEDs Above</span>
-          <select
-            className={inputCls}
-            value={component.buttonLedCount ?? 0}
-            onChange={(e) =>
-              updateComponent(component.id, {
-                buttonLedCount: parseInt(e.target.value) as 0 | 1 | 2 | 3,
-              })
-            }
-          >
-            <option value={0}>None</option>
-            <option value={1}>1 LED</option>
-            <option value={2}>2 LEDs</option>
-            <option value={3}>3 LEDs</option>
-          </select>
-        </div>
+        <>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <span className={labelCls}>LEDs</span>
+              <select
+                className={inputCls}
+                value={component.buttonLedCount ?? 0}
+                onChange={(e) =>
+                  updateComponent(component.id, {
+                    buttonLedCount: parseInt(e.target.value) as 0 | 1 | 2 | 3,
+                  })
+                }
+              >
+                <option value={0}>None</option>
+                <option value={1}>1 LED</option>
+                <option value={2}>2 LEDs</option>
+                <option value={3}>3 LEDs</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <span className={labelCls}>LED Position</span>
+              <select
+                className={inputCls}
+                value={component.buttonLedPosition ?? "above"}
+                onChange={(e) =>
+                  updateComponent(component.id, {
+                    buttonLedPosition: e.target.value as "above" | "left" | "right",
+                  })
+                }
+                disabled={!(component.buttonLedCount ?? 0)}
+              >
+                <option value="above">Above</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          </div>
+        </>
       )}
+
+      <LabelPositionEditor
+        components={[component]}
+        onUpdate={(updates) => updateComponent(component.id, updates)}
+      />
 
       <LabelColorEditor
         components={[component]}
@@ -377,6 +416,54 @@ function SingleComponentEditor({
         Delete Component
       </SidebarButton>
     </>
+  );
+}
+
+function LabelPositionEditor({
+  components,
+  onUpdate,
+}: {
+  components: PanelComponent[];
+  onUpdate: (updates: Partial<PanelComponent>) => void;
+}) {
+  const currentPos = sharedValue(components, "labelPosition");
+  const currentAngle = sharedValue(components, "labelAngle");
+  return (
+    <div className="flex gap-2">
+      <div className="flex-1">
+        <span className={labelCls}>Label Position</span>
+        <select
+          className={inputCls}
+          value={currentPos ?? ""}
+          onChange={(e) =>
+            onUpdate({
+              labelPosition:
+                e.target.value === ""
+                  ? undefined
+                  : (e.target.value as "above" | "below" | "left" | "right"),
+            })
+          }
+        >
+          <option value="">Default</option>
+          <option value="above">Above</option>
+          <option value="below">Below</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+      <div className="flex-1">
+        <span className={labelCls}>Label Angle</span>
+        <input
+          className={inputCls}
+          type="number"
+          value={currentAngle ?? 0}
+          onChange={(e) =>
+            onUpdate({ labelAngle: parseFloat(e.target.value) || 0 })
+          }
+          step={15}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -520,29 +607,48 @@ function MultiComponentEditor({
 
       {/* Button-specific bulk properties */}
       {allButtons && (
-        <div>
-          <span className={labelCls}>LEDs Above</span>
-          <select
-            className={inputCls}
-            value={sharedValue(components, "buttonLedCount") ?? ""}
-            onChange={(e) =>
-              applyUpdate({
-                buttonLedCount: parseInt(e.target.value) as 0 | 1 | 2 | 3,
-              })
-            }
-          >
-            {sharedValue(components, "buttonLedCount") === undefined && (
-              <option value="">Mixed</option>
-            )}
-            <option value={0}>None</option>
-            <option value={1}>1 LED</option>
-            <option value={2}>2 LEDs</option>
-            <option value={3}>3 LEDs</option>
-          </select>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <span className={labelCls}>LEDs</span>
+            <select
+              className={inputCls}
+              value={sharedValue(components, "buttonLedCount") ?? ""}
+              onChange={(e) =>
+                applyUpdate({
+                  buttonLedCount: parseInt(e.target.value) as 0 | 1 | 2 | 3,
+                })
+              }
+            >
+              {sharedValue(components, "buttonLedCount") === undefined && (
+                <option value="">Mixed</option>
+              )}
+              <option value={0}>None</option>
+              <option value={1}>1 LED</option>
+              <option value={2}>2 LEDs</option>
+              <option value={3}>3 LEDs</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <span className={labelCls}>LED Position</span>
+            <select
+              className={inputCls}
+              value={sharedValue(components, "buttonLedPosition") ?? "above"}
+              onChange={(e) =>
+                applyUpdate({
+                  buttonLedPosition: e.target.value as "above" | "left" | "right",
+                })
+              }
+            >
+              <option value="above">Above</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
         </div>
       )}
 
       {/* Common properties for all component types */}
+      <LabelPositionEditor components={components} onUpdate={applyUpdate} />
       <LabelColorEditor components={components} onUpdate={applyUpdate} />
 
       <div>

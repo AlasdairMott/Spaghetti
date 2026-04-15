@@ -10,10 +10,22 @@ const COLOR_MAP: Record<Exclude<LabelColor, "custom">, string> = {
 
 interface Props {
   component: PanelComponent;
+  /** Legacy single-axis offset (used when x/textAnchor/rotation aren't supplied). */
   y: number;
+  /** Optional explicit X offset (defaults to 0). */
+  x?: number;
+  textAnchor?: "start" | "middle" | "end";
+  /** Rotation in degrees, applied around (x, y). */
+  rotation?: number;
 }
 
-export function ComponentLabel({ component, y }: Props) {
+export function ComponentLabel({
+  component,
+  y,
+  x = 0,
+  textAnchor = "middle",
+  rotation = 0,
+}: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
   const theme = useAppStore((s) => s.theme);
   const isLight = theme === "light";
@@ -26,16 +38,26 @@ export function ComponentLabel({ component, y }: Props) {
       : COLOR_MAP[component.labelColor]
     : null;
 
-  // Measure approximate text width for dot positioning
+  // Approximate text width for dot positioning (only used when textAnchor === "middle")
   const textLen = (component.label?.length ?? 0) * 1.1;
-  const dotOffset = textLen / 2 + 1.5;
+  const dotMiddleOffset = textLen / 2 + 1.5;
+  // Dot position depends on text anchor — sits just before the text start
+  const dotCx =
+    textAnchor === "middle"
+      ? component.label ? -dotMiddleOffset : 0
+      : textAnchor === "start"
+        ? component.label ? -1.5 : 0
+        : component.label ? 1.5 : 0;
+
+  const transform = rotation ? `rotate(${rotation} ${x} ${y})` : undefined;
 
   return (
-    <>
+    <g transform={transform}>
       {component.label && (
         <text
+          x={x}
           y={y}
-          textAnchor="middle"
+          textAnchor={textAnchor}
           fill={textColor}
           fontSize={2}
           style={{ userSelect: "none", fontFamily: "Plus Jakarta Sans" }}
@@ -45,12 +67,12 @@ export function ComponentLabel({ component, y }: Props) {
       )}
       {dotColor && (
         <circle
-          cx={component.label ? -dotOffset : 0}
-          cy={component.label ? y - 0.7 : y - 0.7}
+          cx={x + dotCx}
+          cy={y - 0.7}
           r={0.7}
           fill={dotColor}
         />
       )}
-    </>
+    </g>
   );
 }
