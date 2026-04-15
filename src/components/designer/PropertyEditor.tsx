@@ -3,7 +3,10 @@ import { useAppStore } from "../../store";
 import { gridToMm } from "../../utils/grid";
 import { HP_WIDTH, PANEL_HEIGHT } from "../../constants/grid";
 import { exportPanelKicad } from "../../utils/exportKicad";
-import { computeButtonLayout, resolveLabelLayout } from "../../utils/buttonLayout";
+import {
+  computeButtonLayout,
+  resolveLabelLayout,
+} from "../../utils/buttonLayout";
 import type { Module, PanelComponent } from "../../models/types";
 import { SidebarButton } from "../ui/SidebarButton";
 
@@ -23,7 +26,12 @@ function svgLabel(
   // If the user set an explicit position, use it; otherwise place above at fallbackY
   const layout = comp.labelPosition
     ? resolveLabelLayout(comp, 5)
-    : { x: 0, y: fallbackY - cy, textAnchor: "middle" as const, rotation: comp.labelAngle ?? 0 };
+    : {
+        x: 0,
+        y: fallbackY - cy,
+        textAnchor: "middle" as const,
+        rotation: comp.labelAngle ?? 0,
+      };
   const tx = cx + layout.x;
   const ty = cy + layout.y;
   const transform = layout.rotation
@@ -70,7 +78,8 @@ function exportPanelSvg(module: Module) {
         `<circle cx="${buttonCx.toFixed(3)}" cy="${buttonCy.toFixed(3)}" r="${r}" fill="none" stroke="#cc0000" stroke-width="0.2"/>`,
       );
       // Default label position for a button: below if LEDs above, else above
-      const fallbackY = layout.buttonOffset.y > 0 ? buttonCy + 5.5 : buttonCy - 3.5;
+      const fallbackY =
+        layout.buttonOffset.y > 0 ? buttonCy + 5.5 : buttonCy - 3.5;
       const lbl = svgLabel(comp, buttonCx, buttonCy, fallbackY);
       if (lbl) holes.push(lbl);
       for (const led of layout.ledPositions) {
@@ -366,7 +375,10 @@ function SingleComponentEditor({
                 value={component.buttonLedPosition ?? "above"}
                 onChange={(e) =>
                   updateComponent(component.id, {
-                    buttonLedPosition: e.target.value as "above" | "left" | "right",
+                    buttonLedPosition: e.target.value as
+                      | "above"
+                      | "left"
+                      | "right",
                   })
                 }
                 disabled={!(component.buttonLedCount ?? 0)}
@@ -635,7 +647,10 @@ function MultiComponentEditor({
               value={sharedValue(components, "buttonLedPosition") ?? "above"}
               onChange={(e) =>
                 applyUpdate({
-                  buttonLedPosition: e.target.value as "above" | "left" | "right",
+                  buttonLedPosition: e.target.value as
+                    | "above"
+                    | "left"
+                    | "right",
                 })
               }
             >
@@ -727,9 +742,16 @@ export function PropertyEditor() {
               type="checkbox"
               id="rect-dotted"
               checked={rect.dotted ?? false}
-              onChange={(e) => updateRect(rect.id, { dotted: e.target.checked })}
+              onChange={(e) =>
+                updateRect(rect.id, { dotted: e.target.checked })
+              }
             />
-            <label htmlFor="rect-dotted" className="text-[13px] text-text cursor-pointer">Dotted</label>
+            <label
+              htmlFor="rect-dotted"
+              className="text-[13px] text-text cursor-pointer"
+            >
+              Dotted
+            </label>
           </div>
           <div>
             <span className={labelCls}>Drop Shadow (mm)</span>
@@ -737,12 +759,20 @@ export function PropertyEditor() {
               className={inputCls}
               type="number"
               value={rect.shadowOffset ?? 0}
-              onChange={(e) => updateRect(rect.id, { shadowOffset: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                updateRect(rect.id, {
+                  shadowOffset: parseFloat(e.target.value) || 0,
+                })
+              }
               step={0.5}
               min={0}
             />
           </div>
-          <SidebarButton variant="danger" onClick={() => removeRect(rect.id)} className="mt-2">
+          <SidebarButton
+            variant="danger"
+            onClick={() => removeRect(rect.id)}
+            className="mt-2"
+          >
             Delete Rectangle
           </SidebarButton>
         </>
@@ -866,7 +896,7 @@ export function PropertyEditor() {
             Export Panel SVG
           </SidebarButton>
           <SidebarButton onClick={() => exportPanelKicad(editingModule)}>
-            Export KiCad PCB
+            Export KiCad Panel
           </SidebarButton>
         </div>
       )}
