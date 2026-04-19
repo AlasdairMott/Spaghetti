@@ -3,6 +3,9 @@ import {
   GRID_Y,
   PANEL_HEIGHT,
   GRID_Y_OFFSET,
+  EDGE_INSET,
+  TOP_LINE_Y,
+  BOTTOM_LINE_Y,
 } from "../../constants/grid";
 import { hpToMm } from "../../utils/grid";
 import { useAppStore } from "../../store";
@@ -10,8 +13,6 @@ import { useAppStore } from "../../store";
 interface Props {
   widthHP: number;
 }
-
-const EDGE_INSET = 2; // mm from panel edge for top/bottom lines
 
 export function PanelBackground({ widthHP }: Props) {
   const widthMm = hpToMm(widthHP);
@@ -23,12 +24,6 @@ export function PanelBackground({ widthHP }: Props) {
   const panelStroke = isRendered ? "#231F20" : isLight ? "#999" : "#444";
   const gridDotColor = isRendered ? "#bbb" : isLight ? "#aaa" : "#555";
   const lineColor = isRendered ? "#231F20" : isLight ? "#555" : "#444";
-
-  // First grid row Y
-  const topLineY = GRID_Y_OFFSET + GRID_Y * 0.75;
-  // Last grid row Y that fits within the panel
-  const bottomRowCount = Math.floor((PANEL_HEIGHT - GRID_Y_OFFSET) / GRID_Y);
-  const bottomLineY = GRID_Y_OFFSET + bottomRowCount * GRID_Y - GRID_Y * 0.75;
 
   return (
     <>
@@ -70,9 +65,9 @@ export function PanelBackground({ widthHP }: Props) {
       {/* Top grid line */}
       <line
         x1={EDGE_INSET}
-        y1={topLineY}
+        y1={TOP_LINE_Y}
         x2={widthMm - EDGE_INSET}
-        y2={topLineY}
+        y2={TOP_LINE_Y}
         stroke={lineColor}
         strokeWidth={0.2}
         strokeLinecap="round"
@@ -80,9 +75,9 @@ export function PanelBackground({ widthHP }: Props) {
       {/* Bottom grid line */}
       <line
         x1={EDGE_INSET}
-        y1={bottomLineY}
+        y1={BOTTOM_LINE_Y}
         x2={widthMm - EDGE_INSET}
-        y2={bottomLineY}
+        y2={BOTTOM_LINE_Y}
         stroke={lineColor}
         strokeWidth={0.2}
         strokeLinecap="round"

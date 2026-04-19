@@ -3,17 +3,10 @@ import { useAppStore } from "../../store";
 import {
   PANEL_HEIGHT,
   HP_WIDTH,
-  GRID_Y,
-  GRID_Y_OFFSET,
 } from "../../constants/grid";
 import { screenToSvg } from "../../utils/svg";
 import { gridToMm } from "../../utils/grid";
 import { detectIsTrackpad } from "../../utils/wheelDetect";
-import { JackShape } from "../designer/shapes/JackShape";
-import { PotShape } from "../designer/shapes/PotShape";
-import { ButtonShape } from "../designer/shapes/ButtonShape";
-import { LedShape } from "../designer/shapes/LedShape";
-import { ComponentLabel } from "../designer/ComponentLabel";
 import { RenderModeToggle } from "../layout/RenderModeToggle";
 import {
   CanvasWireLayer,
@@ -23,10 +16,9 @@ import {
 import { ModuleSearchPopup } from "../ui/ModuleSearchPopup";
 import { snapPosition } from "../../store/canvasSlice";
 import { useKnobDrag, randomizeKnobs } from "../../hooks/useKnobDrag";
-import { computeButtonLayout, resolveLabelLayout } from "../../utils/buttonLayout";
+import { ModulePanel } from "../shared/ModulePanel";
 import type { RackWireEndpoint } from "../../models/types";
 
-const EDGE_INSET = 2;
 const JACK_HIT_RADIUS = 4;
 
 interface DragState {
@@ -96,9 +88,6 @@ export function CanvasCanvas({
   const canvasBg = isLight ? "#d8d4d0" : "#1a1a1a";
   const panelStroke = isLight ? "#b0acaa" : "#959495";
   const compStroke = isLight ? "#555" : "#888";
-  const topLineY = GRID_Y_OFFSET + GRID_Y * 0.75;
-  const bottomRowCount = Math.floor((PANEL_HEIGHT - GRID_Y_OFFSET) / GRID_Y);
-  const bottomLineY = GRID_Y_OFFSET + bottomRowCount * GRID_Y - GRID_Y * 0.75;
 
   // Pan / zoom
   const savedCanvasView = useAppStore((s) => s.canvasView);
@@ -801,7 +790,6 @@ export function CanvasCanvas({
               : isMultiDragging
                 ? placement.y + (dragPreview.y - drag!.startY)
                 : placement.y;
-            const modWidth = mod.widthHP * HP_WIDTH;
             return (
               <g
                 key={placement.id}
@@ -829,217 +817,29 @@ export function CanvasCanvas({
                       : "pointer",
                 }}
               >
-                <rect
-                  x={0}
-                  y={0}
-                  width={modWidth}
-                  height={PANEL_HEIGHT}
-                  fill={panelBg}
-                  stroke={
-                    isDragging || isMultiDragging ? "#fa4" : isSelected ? "#4af" : panelStroke
-                  }
-                  strokeWidth={isSelected ? 0.6 : 0.2}
-                  rx={0.5}
-                />
-                <line
-                  x1={EDGE_INSET}
-                  y1={topLineY}
-                  x2={modWidth - EDGE_INSET}
-                  y2={topLineY}
-                  stroke={lineColor}
-                  strokeWidth={0.2}
-                  strokeLinecap="round"
-                />
-                <line
-                  x1={EDGE_INSET}
-                  y1={bottomLineY}
-                  x2={modWidth - EDGE_INSET}
-                  y2={bottomLineY}
-                  stroke={lineColor}
-                  strokeWidth={0.2}
-                  strokeLinecap="round"
-                />
-
-                {mod.components.map((comp) => {
-                  const pos = gridToMm(comp.position);
-                  const buttonLeds = comp.buttonLedCount ?? 0;
-                  const hasButtonLeds =
-                    comp.kind === "button" && buttonLeds > 0;
-                  const buttonLayout =
-                    comp.kind === "button"
-                      ? computeButtonLayout(buttonLeds, comp.buttonLedPosition ?? "above")
-                      : null;
-                  const defaultDist =
-                    comp.kind === "jack" ? 5 : comp.kind === "pot" ? 8 : 5;
-                  const labelLayout =
-                    comp.kind === "button"
-                      ? resolveLabelLayout(comp, 5)
-                      : {
-                          x: 0,
-                          y: -defaultDist,
-                          textAnchor: "middle" as const,
-                          rotation: comp.labelAngle ?? 0,
-                        };
-                  return (
-                    <g
-                      key={comp.id}
-                      transform={`translate(${pos.x}, ${pos.y})`}
-                    >
-                      {comp.kind === "jack" ? (
-                        <g pointerEvents="none">
-                          <JackShape stroke={compStroke} />
-                        </g>
-                      ) : comp.kind === "pot" ? (
-                        <g
-                          style={{ cursor: "ns-resize" }}
-                          onPointerDown={(e) =>
-                            handlePotPointerDown(e, placement.id, comp.id)
-                          }
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            canvasSetKnobAngle(placement.id, comp.id, 150);
-                            onKnobChange?.(placement.id, comp.id, 150);
-                          }}
-                        >
-                          <PotShape
-                            stroke={compStroke}
-                            knobAngle={getKnobAngle(placement.id, comp.id)}
-                          />
-                          <circle
-                            r={7}
-                            fill="transparent"
-                            pointerEvents="all"
-                          />
-                        </g>
-                      ) : (
-                        <g
-                          style={{ cursor: "pointer" }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const newPressed = !isButtonPressed(
-                              placement.id,
-                              comp.id,
-                            );
-                            canvasToggleButton(placement.id, comp.id);
-                            onButtonToggle?.(placement.id, comp.id, newPressed);
-                          }}
-                        >
-                          {buttonLayout?.ledPositions.map((p, i) => (
-                            <g key={i} transform={`translate(${p.x}, ${p.y})`}>
-                              <LedShape
-                                lit={isButtonPressed(placement.id, comp.id)}
-                              />
-                            </g>
-                          ))}
-                          <g
-                            transform={`translate(${buttonLayout?.buttonOffset.x ?? 0}, ${buttonLayout?.buttonOffset.y ?? 0})`}
-                          >
-                            <ButtonShape
-                              stroke={
-                                !hasButtonLeds &&
-                                isButtonPressed(placement.id, comp.id)
-                                  ? "#aaf"
-                                  : compStroke
-                              }
-                            />
-                          </g>
-                          <rect
-                            x={(buttonLayout?.buttonOffset.x ?? 0) - 3}
-                            y={(buttonLayout?.buttonOffset.y ?? 0) - 3}
-                            width={6}
-                            height={6}
-                            fill="transparent"
-                            pointerEvents="all"
-                          />
-                        </g>
-                      )}
-                      {comp.kind === "jack" && comp.hasLed && (
-                        <g transform="translate(-5.5, 0)">
-                          <LedShape />
-                        </g>
-                      )}
-                      <ComponentLabel
-                        component={comp}
-                        x={labelLayout.x}
-                        y={labelLayout.y}
-                        textAnchor={labelLayout.textAnchor}
-                        rotation={labelLayout.rotation}
-                      />
-                    </g>
-                  );
-                })}
-
-                {(mod.connections ?? []).map((conn) => {
-                  const cdx = conn.to.x - conn.from.x;
-                  const cdy = conn.to.y - conn.from.y;
-                  const clen = Math.hypot(cdx, cdy);
-                  const cux = clen > 0 ? cdx / clen : 0;
-                  const cuy = clen > 0 ? cdy / clen : 0;
-                  const so = conn.startOffset ?? 0;
-                  const eo = conn.endOffset ?? 0;
-                  const cx1 = conn.from.x + cux * so;
-                  const cy1 = conn.from.y + cuy * so;
-                  const cx2 = conn.to.x - cux * eo;
-                  const cy2 = conn.to.y - cuy * eo;
-                  const isArr = conn.kind === "arrow";
-                  const aH = 1.5,
-                    aW = 0.75,
-                    aG = 0.8;
-                  const leX = isArr ? cx2 - cux * (aH + aG) : cx2;
-                  const leY = isArr ? cy2 - cuy * (aH + aG) : cy2;
-                  const bX = cx2 - cux * aH;
-                  const bY = cy2 - cuy * aH;
-                  const pX = -cuy * aW;
-                  const pY = cux * aW;
-                  return (
-                    <g key={conn.id}>
-                      <line
-                        x1={cx1}
-                        y1={cy1}
-                        x2={leX}
-                        y2={leY}
-                        stroke={lineColor}
-                        strokeWidth={0.2}
-                      />
-                      {isArr && (
-                        <polygon
-                          points={`${cx2},${cy2} ${bX + pX},${bY + pY} ${bX - pX},${bY - pY}`}
-                          fill={lineColor}
-                        />
-                      )}
-                      {conn.label && (
-                        <text
-                          x={(cx1 + leX) / 2 + (clen > 0 ? -cuy * 2 : 2)}
-                          y={(cy1 + leY) / 2 + (clen > 0 ? cux * 2 : 0)}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fill={textColor}
-                          fontSize={2.5}
-                          style={{
-                            userSelect: "none",
-                            fontFamily: "Plus Jakarta Sans",
-                          }}
-                        >
-                          {conn.label}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-
-                <text
-                  x={modWidth / 2}
-                  y={6}
-                  textAnchor="middle"
-                  fill={textColor}
-                  fontSize={3}
-                  style={{
-                    userSelect: "none",
-                    fontFamily: "Plus Jakarta Sans",
+                <ModulePanel
+                  module={mod}
+                  placementId={placement.id}
+                  panelBg={panelBg}
+                  panelStroke={panelStroke}
+                  lineColor={lineColor}
+                  textColor={textColor}
+                  compStroke={compStroke}
+                  borderStroke={isDragging || isMultiDragging ? "#fa4" : isSelected ? "#4af" : undefined}
+                  borderWidth={isSelected ? 0.6 : undefined}
+                  getKnobAngle={getKnobAngle}
+                  isButtonPressed={isButtonPressed}
+                  handlePotPointerDown={handlePotPointerDown}
+                  onPotDoubleClick={(pid, cid) => {
+                    canvasSetKnobAngle(pid, cid, 150);
+                    onKnobChange?.(pid, cid, 150);
                   }}
-                >
-                  {mod.name}
-                </text>
+                  onButtonClick={(pid, cid) => {
+                    const p = !isButtonPressed(pid, cid);
+                    canvasToggleButton(pid, cid);
+                    onButtonToggle?.(pid, cid, p);
+                  }}
+                />
               </g>
             );
           })}
