@@ -3,6 +3,7 @@ import { useAppStore } from "../../store";
 import { gridToMm } from "../../utils/grid";
 import { HP_WIDTH, PANEL_HEIGHT } from "../../constants/grid";
 import { exportPanelKicad } from "../../utils/exportKicad";
+import { KicadExportModal } from "../ui/KicadExportModal";
 import {
   computeButtonLayout,
   resolveLabelLayout,
@@ -699,6 +700,7 @@ function MultiComponentEditor({
 }
 
 export function PropertyEditor() {
+  const [showKicadModal, setShowKicadModal] = useState(false);
   const editingModule = useAppStore((s) => s.editingModule);
   const selectedId = useAppStore((s) => s.selectedComponentId);
   const selectedIds = useAppStore((s) => s.selectedComponentIds);
@@ -898,7 +900,16 @@ export function PropertyEditor() {
           <SidebarButton onClick={() => exportPanelKicad(editingModule)}>
             Export KiCad Panel
           </SidebarButton>
+          <SidebarButton onClick={() => setShowKicadModal(true)}>
+            Export KiCad Project
+          </SidebarButton>
         </div>
+      )}
+      {showKicadModal && editingModule && (
+        <KicadExportModal
+          module={editingModule}
+          onClose={() => setShowKicadModal(false)}
+        />
       )}
     </div>
   );

@@ -23,11 +23,38 @@ const MOUNTING_HOLE_DIAMETER = 3.2;
 const LABEL_FONT_SIZE = 2.5;
 const MODULE_NAME_FONT_SIZE = 3.2;
 
-function f(n: number): string {
+export function f(n: number): string {
   return n.toFixed(4);
 }
 
-function uuid(): string {
+/**
+ * Compute every LED position (mm) on the panel for a module. Used by both
+ * the panel export (to drill NPTH holes) and the project export (to place
+ * LED footprints) so the two always agree on where LEDs go.
+ *
+ * Sources of LEDs:
+ *   • Jack `hasLed` → single LED 6.35mm to the left of the jack
+ *   • Button `buttonLedCount` → one or more LEDs from computeButtonLayout
+ */
+export function panelLedPositions(module: Module): { x: number; y: number; label: string }[] {
+  const out: { x: number; y: number; label: string }[] = [];
+  for (const comp of module.components) {
+    const pos = gridToMm(comp.position);
+    if (comp.kind === "jack" && comp.hasLed) {
+      out.push({ x: pos.x - 6.35, y: pos.y, label: comp.label });
+    } else if (comp.kind === "button") {
+      const count = comp.buttonLedCount ?? 0;
+      if (!count) continue;
+      const layout = computeButtonLayout(count, comp.buttonLedPosition ?? "above");
+      for (const led of layout.ledPositions) {
+        out.push({ x: pos.x + led.x, y: pos.y + led.y, label: comp.label });
+      }
+    }
+  }
+  return out;
+}
+
+export function uuid(): string {
   return crypto.randomUUID();
 }
 
@@ -288,7 +315,12 @@ const SETUP = `  (setup
     )
   )`;
 
-export function exportPanelKicad(module: Module): void {
+/**
+ * Build the list of items (silkscreen, edge cuts, NPTH pads) that make up
+ * the panel portion of a .kicad_pcb. Used both by the panel-only export
+ * and the full-project export (which appends component footprints).
+ */
+export function buildPanelItems(module: Module): string[] {
   const panelWidth = module.widthHP * HP_WIDTH;
   const panelHeight = PANEL_HEIGHT;
 
@@ -397,8 +429,6 @@ export function exportPanelKicad(module: Module): void {
     if (comp.kind === "jack") {
       items.push(npthPad(pos.x, pos.y, JACK_HOLE_DIAMETER));
       pushLabel(items, comp, pos.x, pos.y, pos.y - 5 - 0.8);
-      if (comp.hasLed)
-        items.push(npthPad(pos.x - 6.35, pos.y, LED_HOLE_DIAMETER));
     } else if (comp.kind === "pot") {
       items.push(npthPad(pos.x, pos.y, POT_HOLE_DIAMETER));
       pushLabel(items, comp, pos.x, pos.y, pos.y - 8 - 0.8);
@@ -412,17 +442,36 @@ export function exportPanelKicad(module: Module): void {
       // Default label fallback Y depends on whether the button is shifted down for LEDs above
       const fallbackY = layout.buttonOffset.y > 0 ? buttonCy + 5 : buttonCy - 5;
       pushLabel(items, comp, buttonCx, buttonCy, fallbackY);
-      for (const led of layout.ledPositions) {
-        items.push(npthPad(pos.x + led.x, pos.y + led.y, LED_HOLE_DIAMETER));
-      }
     }
   }
 
-  const kicad = [
+  // LED holes — use the shared panel LED position list so panel and project
+  // exports always agree on where LEDs go.
+  for (const { x, y } of panelLedPositions(module)) {
+    items.push(npthPad(x, y, LED_HOLE_DIAMETER));
+  }
+
+  return items;
+}
+
+/**
+ * Wrap a list of PCB body items into a full .kicad_pcb file. Accepts
+ * optional extra nets (the panel-only export has none; the project
+ * export lists the nets inferred from component refs).
+ */
+export function buildKicadPcbFile(
+  items: string[],
+  nets: string[] = [],
+): string {
+  const netLines = [
+    `  (net 0 "")`,
+    ...nets.map((name, i) => `  (net ${i + 1} "${name}")`),
+  ];
+  return [
     `(kicad_pcb`,
-    `  (version 20240108)`,
+    `  (version 20241229)`,
     `  (generator "pcbnew")`,
-    `  (generator_version "8.0")`,
+    `  (generator_version "9.0")`,
     `  (general`,
     `    (thickness 1.6)`,
     `    (legacy_teardrops no)`,
@@ -430,12 +479,15 @@ export function exportPanelKicad(module: Module): void {
     `  (paper "A4")`,
     LAYERS,
     SETUP,
-    `  (net 0 "")`,
+    ...netLines,
     ``,
     ...items,
     `)`,
   ].join("\n");
+}
 
+export function exportPanelKicad(module: Module): void {
+  const kicad = buildKicadPcbFile(buildPanelItems(module));
   const blob = new Blob([kicad], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

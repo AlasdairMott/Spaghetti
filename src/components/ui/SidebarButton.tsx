@@ -18,6 +18,7 @@ interface Props {
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   variant?: Variant;
   className?: string;
+  disabled?: boolean;
 }
 
 export function SidebarButton({
@@ -25,11 +26,13 @@ export function SidebarButton({
   onClick,
   variant = "default",
   className = "",
+  disabled = false,
 }: Props) {
   return (
     <button
       onClick={onClick}
-      className={`${base} ${variants[variant]} ${className}`}
+      disabled={disabled}
+      className={`${base} ${variants[variant]} ${disabled ? "opacity-40 pointer-events-none" : ""} ${className}`}
     >
       {children}
     </button>
