@@ -97,5 +97,17 @@ export function resolveLabelLayout(
 ): LabelLayout {
   const pos = component.labelPosition ?? defaultLabelPosition(component);
   const angle = component.labelAngle ?? 0;
-  return computeLabelLayout(pos, angle, distance);
+  // When LEDs are above the button, the button body shifts down by buttonOffset.y.
+  // A "below" label needs extra clearance to sit below the shifted button body.
+  let effectiveDist = distance;
+  if (
+    component.kind === "button" &&
+    pos === "below" &&
+    (component.buttonLedCount ?? 0) > 0 &&
+    (component.buttonLedPosition ?? "above") === "above"
+  ) {
+    const layout = computeButtonLayout(component.buttonLedCount!, "above");
+    effectiveDist = layout.buttonOffset.y + distance;
+  }
+  return computeLabelLayout(pos, angle, effectiveDist);
 }

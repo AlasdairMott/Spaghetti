@@ -441,7 +441,10 @@ export function buildPanelItems(module: Module): string[] {
       items.push(npthPad(buttonCx, buttonCy, BUTTON_HOLE_DIAMETER));
       // Default label fallback Y depends on whether the button is shifted down for LEDs above
       const fallbackY = layout.buttonOffset.y > 0 ? buttonCy + 5 : buttonCy - 5;
-      pushLabel(items, comp, buttonCx, buttonCy, fallbackY);
+      // Pass the component origin (pos.x, pos.y) as the label reference — not
+      // the shifted button center — so resolveLabelLayout's built-in button
+      // offset compensation isn't applied twice.
+      pushLabel(items, comp, pos.x, pos.y, fallbackY);
     }
   }
 
