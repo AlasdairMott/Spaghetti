@@ -8,6 +8,10 @@ import { RackView } from "../rack/RackView";
 export function AppShell() {
   const mode = useAppStore((s) => s.mode);
   const theme = useAppStore((s) => s.theme);
+  const viewTabs = useAppStore((s) => s.viewTabs);
+  const activeViewTabId = useAppStore((s) => s.activeViewTabId);
+
+  const activeTab = viewTabs.find((t) => t.id === activeViewTabId);
 
   // Sync theme class on <html>
   useEffect(() => {
@@ -18,8 +22,12 @@ export function AppShell() {
     <div className="flex flex-col h-screen w-screen overflow-hidden text-text font-sans">
       <Toolbar />
       {mode === "designer" && <DesignerView />}
-      {mode === "canvas" && <CanvasView />}
-      {mode === "rack" && <RackView />}
+      {mode === "view" && activeTab?.kind === "rack" && (
+        <RackView key={activeTab.dataId} />
+      )}
+      {mode === "view" && activeTab?.kind === "canvas" && (
+        <CanvasView key={activeTab.dataId} />
+      )}
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore } from "../../store";
-import type { AppMode, Module } from "../../models/types";
-import { Sun, Moon, Play, Square, Menu } from "lucide-react";
+import type { Module } from "../../models/types";
+import { Sun, Moon, Play, Square, Menu, LayoutGrid, Frame } from "lucide-react";
 import { toggleAudio } from "../../audio/singleton";
+import { Tabs } from "../ui/Tabs";
+import type { Tab } from "../ui/Tabs";
 
 export function Toolbar() {
   const mode = useAppStore((s) => s.mode);
@@ -16,9 +18,17 @@ export function Toolbar() {
   const setTheme = useAppStore((s) => s.setTheme);
   const audioRunning = useAppStore((s) => s.audioRunning);
   const resetProject = useAppStore((s) => s.resetProject);
+  const viewTabs = useAppStore((s) => s.viewTabs);
+  const activeViewTabId = useAppStore((s) => s.activeViewTabId);
+  const setActiveViewTab = useAppStore((s) => s.setActiveViewTab);
+  const addViewTab = useAppStore((s) => s.addViewTab);
+  const closeViewTab = useAppStore((s) => s.closeViewTab);
+  const renameViewTab = useAppStore((s) => s.renameViewTab);
   const [saved, setSaved] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const addMenuRef = useRef<HTMLDivElement>(null);
 
   const handleToggleAudio = useCallback(() => {
     toggleAudio();
@@ -38,17 +48,28 @@ export function Toolbar() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Close menu on outside click
+  // Close menus on outside click
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !addMenuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false);
+      }
+      if (
+        addMenuOpen &&
+        addMenuRef.current &&
+        !addMenuRef.current.contains(e.target as Node)
+      ) {
+        setAddMenuOpen(false);
       }
     };
     window.addEventListener("mousedown", handler);
     return () => window.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
+  }, [menuOpen, addMenuOpen]);
 
   const handleSave = () => {
     if (editingModule) {
@@ -78,7 +99,13 @@ export function Toolbar() {
     setMenuOpen(false);
     const state = useAppStore.getState();
     const data = JSON.stringify(
-      { modules: state.modules, rack: state.rack, canvas: state.canvas },
+      {
+        modules: state.modules,
+        racks: state.racks,
+        canvases: state.canvases,
+        viewTabs: state.viewTabs,
+        activeViewTabId: state.activeViewTabId,
+      },
       null,
       2,
     );
@@ -109,11 +136,60 @@ export function Toolbar() {
         if (!confirm("This will replace your current project. Continue?"))
           return;
         if (audioRunning) toggleAudio();
-        useAppStore.setState({
-          modules: data.modules as Module[],
-          ...(data.rack ? { rack: data.rack } : {}),
-          ...(data.canvas ? { canvas: data.canvas } : {}),
-        });
+
+        // Support both old format (rack/canvas) and new format (racks/canvases)
+        if (data.racks && data.canvases && data.viewTabs) {
+          // New format
+          useAppStore.setState({
+            modules: data.modules as Module[],
+            racks: data.racks,
+            canvases: data.canvases,
+            viewTabs: data.viewTabs,
+            activeViewTabId: data.activeViewTabId,
+          });
+        } else {
+          // Old format — migrate
+          const rack = data.rack ?? {
+            id: crypto.randomUUID(),
+            name: "Rack",
+            widthHP: 84,
+            rows: 1,
+            placements: [],
+            wires: [],
+            knobStates: [],
+            buttonStates: [],
+          };
+          const canvas = data.canvas ?? {
+            id: crypto.randomUUID(),
+            name: "Canvas",
+            placements: [],
+            wires: [],
+            knobStates: [],
+            buttonStates: [],
+          };
+          const rackTabId = crypto.randomUUID();
+          const canvasTabId = crypto.randomUUID();
+          useAppStore.setState({
+            modules: data.modules as Module[],
+            racks: [rack],
+            canvases: [canvas],
+            viewTabs: [
+              {
+                id: rackTabId,
+                kind: "rack" as const,
+                name: "Rack 1",
+                dataId: rack.id,
+              },
+              {
+                id: canvasTabId,
+                kind: "canvas" as const,
+                name: "Canvas 1",
+                dataId: canvas.id,
+              },
+            ],
+            activeViewTabId: rackTabId,
+          });
+        }
       } catch {
         alert("Failed to read project file.");
       }
@@ -133,11 +209,12 @@ export function Toolbar() {
     resetProject();
   };
 
-  const modes: { id: AppMode; label: string }[] = [
-    { id: "designer", label: "Module Designer" },
-    { id: "canvas", label: "Canvas" },
-    { id: "rack", label: "Rack View" },
-  ];
+  // Map viewTabs to Tab[] with icons
+  const tabs: Tab[] = viewTabs.map((vt) => ({
+    id: vt.id,
+    name: vt.name,
+    icon: vt.kind === "rack" ? <LayoutGrid size={12} /> : <Frame size={12} />,
+  }));
 
   const menuItemCls =
     "w-full text-left px-3 py-1.5 text-[13px] bg-transparent border-none cursor-pointer text-text hover:bg-surface-3";
@@ -185,20 +262,60 @@ export function Toolbar() {
         )}
       </button>
 
-      <div className="flex gap-0.5">
-        {modes.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setMode(m.id)}
-            className={`px-3 py-1 text-[13px] cursor-pointer border-none rounded-t-md relative ${
-              mode === m.id
-                ? "bg-surface-2 text-text font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-accent"
-                : "bg-transparent text-text-dim hover:text-text-muted"
-            }`}
-          >
-            {m.label}
-          </button>
-        ))}
+      {/* Module Designer standalone button */}
+      <button
+        onClick={() => setMode("designer")}
+        className={`px-3 py-1 text-[13px] cursor-pointer border-none rounded-t-md relative ${
+          mode === "designer"
+            ? " text-text font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-accent"
+            : "bg-transparent text-text-dim hover:text-text-muted"
+        }`}
+      >
+        Module Designer
+      </button>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
+
+      {/* View tabs */}
+      <div className="relative" ref={addMenuRef}>
+        <Tabs
+          tabs={tabs}
+          activeId={mode === "view" ? activeViewTabId : ""}
+          onSelect={(id) => setActiveViewTab(id)}
+          onClose={(id) => closeViewTab(id)}
+          onAdd={(e) => {
+            e.stopPropagation();
+            setAddMenuOpen(!addMenuOpen);
+          }}
+          onRename={(id, name) => renameViewTab(id, name)}
+        />
+        {addMenuOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-surface-2 border border-border-light rounded-lg shadow-lg overflow-hidden z-50 min-w-40">
+            <button
+              onClick={() => {
+                addViewTab("rack");
+                setAddMenuOpen(false);
+              }}
+              className={menuItemCls}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LayoutGrid size={12} /> New Rack View
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                addViewTab("canvas");
+                setAddMenuOpen(false);
+              }}
+              className={menuItemCls}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Frame size={12} /> New Canvas
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex-1" />

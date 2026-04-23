@@ -90,8 +90,8 @@ export function CanvasCanvas({
   const compStroke = isLight ? "#555" : "#888";
 
   // Pan / zoom
-  const savedCanvasView = useAppStore((s) => s.canvasView);
-  const setCanvasView = useAppStore((s) => s.setCanvasView);
+  const savedCanvasView = useAppStore((s) => s.canvas.view);
+  const setCanvasView = useAppStore((s) => s.setActiveCanvasView);
   const [view, setView] = useState(
     () => savedCanvasView ?? { zoom: 1, panX: 0, panY: 0 },
   );

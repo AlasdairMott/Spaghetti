@@ -87,8 +87,8 @@ export function RackCanvas({ onKnobChange, onButtonToggle }: RackCanvasProps) {
   const compStroke = isLight ? "#555" : "#888";
 
   // Pan / zoom — use refs as source of truth, sync to state once per frame
-  const savedRackView = useAppStore((s) => s.rackView);
-  const setRackView = useAppStore((s) => s.setRackView);
+  const savedRackView = useAppStore((s) => s.rack.view);
+  const setRackView = useAppStore((s) => s.setActiveRackView);
   const [view, setView] = useState(
     () => savedRackView ?? { zoom: 1, panX: 0, panY: 0 },
   );

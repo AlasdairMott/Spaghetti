@@ -1,10 +1,12 @@
 import type { StateCreator } from "zustand";
-import type { Rack, RackPlacement, RackWireEndpoint } from "../models/types";
+import type { Rack, RackPlacement, RackWireEndpoint, ViewState } from "../models/types";
 import type { AppStore } from "./index";
 
 const WIRE_COLORS = ["#e44", "#4ae", "#4d4", "#fd0", "#f4a", "#a4f", "#fa4", "#4dd"];
 
 export interface RackSlice {
+  racks: Rack[];
+  /** Computed getter — resolves to the active rack via activeViewTabId */
   rack: Rack;
   selectedWireIds: string[];
   selectedPlacementIds: string[];
@@ -22,6 +24,33 @@ export interface RackSlice {
   toggleButton: (placementId: string, componentId: string) => void;
   updateWireEndpoint: (wireId: string, end: "from" | "to", newEndpoint: RackWireEndpoint) => void;
   clearWires: () => void;
+  setActiveRackView: (view: ViewState) => void;
+}
+
+const EMPTY_RACK: Rack = {
+  id: "empty",
+  name: "Empty",
+  widthHP: 84,
+  rows: 1,
+  placements: [],
+  wires: [],
+  knobStates: [],
+  buttonStates: [],
+};
+
+function getActiveRack(state: AppStore): Rack {
+  const tab = state.viewTabs.find((t) => t.id === state.activeViewTabId);
+  if (tab?.kind === "rack") {
+    return state.racks.find((r) => r.id === tab.dataId) ?? state.racks[0] ?? EMPTY_RACK;
+  }
+  return state.racks[0] ?? EMPTY_RACK;
+}
+
+function updateActiveRack(state: AppStore, updater: (rack: Rack) => Rack): Partial<AppStore> {
+  const active = getActiveRack(state);
+  return {
+    racks: state.racks.map((r) => (r.id === active.id ? updater(r) : r)),
+  };
 }
 
 function hasOverlap(
@@ -45,28 +74,23 @@ function hasOverlap(
 }
 
 export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) => ({
-  rack: {
-    id: crypto.randomUUID(),
-    name: "My Rack",
-    widthHP: 104,
-    rows: 4,
-    placements: [],
-    wires: [],
-    knobStates: [],
-    buttonStates: [],
-  },
+  racks: [],
+
+  // Derived field — kept in sync by the subscribe handler in store/index.ts
+  rack: EMPTY_RACK,
 
   selectedWireIds: [],
   selectedPlacementIds: [],
 
   setRackWidth: (hp) =>
-    set((state) => ({ rack: { ...state.rack, widthHP: hp } })),
+    set((state) => updateActiveRack(state, (r) => ({ ...r, widthHP: hp }))),
 
   setRackRows: (rows) =>
-    set((state) => ({ rack: { ...state.rack, rows } })),
+    set((state) => updateActiveRack(state, (r) => ({ ...r, rows }))),
 
   placeModule: (moduleId, positionHP, row) =>
     set((state) => {
+      const rack = getActiveRack(state);
       const mod = state.modules.find((m) => m.id === moduleId);
       if (!mod) return state;
       const getWidth = (id: string) =>
@@ -77,82 +101,81 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
         positionHP,
         row,
       };
-      if (hasOverlap(state.rack.placements, placement, getWidth, state.rack.widthHP)) {
+      if (hasOverlap(rack.placements, placement, getWidth, rack.widthHP)) {
         return state;
       }
-      return {
-        rack: {
-          ...state.rack,
-          placements: [...state.rack.placements, placement],
-        },
-      };
+      return updateActiveRack(state, (r) => ({
+        ...r,
+        placements: [...r.placements, placement],
+      }));
     }),
 
   removeFromRack: (placementId) =>
-    set((state) => ({
-      rack: {
-        ...state.rack,
-        placements: state.rack.placements.filter((p) => p.id !== placementId),
-        // Also remove wires connected to this placement
-        wires: (state.rack.wires ?? []).filter(
+    set((state) =>
+      updateActiveRack(state, (r) => ({
+        ...r,
+        placements: r.placements.filter((p) => p.id !== placementId),
+        wires: (r.wires ?? []).filter(
           (w) => w.from.placementId !== placementId && w.to.placementId !== placementId
         ),
-        // Remove knob states for this placement
-        knobStates: (state.rack.knobStates ?? []).filter(
+        knobStates: (r.knobStates ?? []).filter(
           (k) => k.placementId !== placementId
         ),
-        // Remove button states for this placement
-        buttonStates: (state.rack.buttonStates ?? []).filter(
+        buttonStates: (r.buttonStates ?? []).filter(
           (b) => b.placementId !== placementId
         ),
-      },
-    })),
+      }))
+    ),
 
   moveInRack: (placementId, newPositionHP, newRow?) =>
     set((state) => {
-      const existing = state.rack.placements.find((p) => p.id === placementId);
+      const rack = getActiveRack(state);
+      const existing = rack.placements.find((p) => p.id === placementId);
       if (!existing) return state;
       const getWidth = (id: string) =>
         state.modules.find((m) => m.id === id)?.widthHP ?? 0;
       const row = newRow !== undefined ? newRow : existing.row;
       const moved: RackPlacement = { ...existing, positionHP: newPositionHP, row };
-      const others = state.rack.placements.filter((p) => p.id !== placementId);
-      if (hasOverlap(others, moved, getWidth, state.rack.widthHP)) {
+      const others = rack.placements.filter((p) => p.id !== placementId);
+      if (hasOverlap(others, moved, getWidth, rack.widthHP)) {
         return state;
       }
-      return {
-        rack: { ...state.rack, placements: [...others, moved] },
-      };
+      return updateActiveRack(state, (r) => ({
+        ...r,
+        placements: [...r.placements.filter((p) => p.id !== placementId), moved],
+      }));
     }),
 
   batchMoveInRack: (moves) =>
     set((state) => {
+      const rack = getActiveRack(state);
       const getWidth = (id: string) =>
         state.modules.find((m) => m.id === id)?.widthHP ?? 0;
       const moveIds = new Set(moves.map((m) => m.placementId));
-      const others = state.rack.placements.filter((p) => !moveIds.has(p.id));
+      const others = rack.placements.filter((p) => !moveIds.has(p.id));
       const movedPlacements: RackPlacement[] = [];
 
       for (const move of moves) {
-        const existing = state.rack.placements.find((p) => p.id === move.placementId);
+        const existing = rack.placements.find((p) => p.id === move.placementId);
         if (!existing) continue;
         const moved: RackPlacement = { ...existing, positionHP: move.positionHP, row: move.row };
-        if (hasOverlap(others, moved, getWidth, state.rack.widthHP)) return state;
+        if (hasOverlap(others, moved, getWidth, rack.widthHP)) return state;
         movedPlacements.push(moved);
       }
 
-      return {
-        rack: { ...state.rack, placements: [...others, ...movedPlacements] },
-      };
+      return updateActiveRack(state, (r) => ({
+        ...r,
+        placements: [...others, ...movedPlacements],
+      }));
     }),
 
   addWire: (from, to) =>
     set((state) => {
-      const existingWires = state.rack.wires ?? [];
+      const rack = getActiveRack(state);
+      const existingWires = rack.wires ?? [];
 
-      // Check if either endpoint is an input jack that already has a wire
       const isInputOccupied = (ep: RackWireEndpoint) => {
-        const placement = state.rack.placements.find((p) => p.id === ep.placementId);
+        const placement = rack.placements.find((p) => p.id === ep.placementId);
         if (!placement) return false;
         const mod = state.modules.find((m) => m.id === placement.moduleId);
         if (!mod) return false;
@@ -160,7 +183,6 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
         if (!comp || comp.kind !== "jack") return false;
         const dir = comp.jackDirection ?? "input";
         if (dir !== "input" && dir !== "both") return false;
-        // Check if this input already has a wire connected to it
         return existingWires.some(
           (w) =>
             (w.to.placementId === ep.placementId && w.to.componentId === ep.componentId) ||
@@ -170,28 +192,26 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
 
       if (isInputOccupied(from) || isInputOccupied(to)) return state;
 
-      return {
-        rack: {
-          ...state.rack,
-          wires: [
-            ...existingWires,
-            {
-              id: crypto.randomUUID(),
-              color: WIRE_COLORS[Math.floor(Math.random() * WIRE_COLORS.length)],
-              from,
-              to,
-            },
-          ],
-        },
-      };
+      return updateActiveRack(state, (r) => ({
+        ...r,
+        wires: [
+          ...(r.wires ?? []),
+          {
+            id: crypto.randomUUID(),
+            color: WIRE_COLORS[Math.floor(Math.random() * WIRE_COLORS.length)],
+            from,
+            to,
+          },
+        ],
+      }));
     }),
 
   removeWire: (id) =>
     set((state) => ({
-      rack: {
-        ...state.rack,
-        wires: (state.rack.wires ?? []).filter((w) => w.id !== id),
-      },
+      ...updateActiveRack(state, (r) => ({
+        ...r,
+        wires: (r.wires ?? []).filter((w) => w.id !== id),
+      })),
       selectedWireIds: state.selectedWireIds.filter((wid) => wid !== id),
     })),
 
@@ -200,42 +220,46 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
   selectPlacements: (ids) => set({ selectedPlacementIds: ids, selectedWireIds: [] }),
 
   setKnobAngle: (placementId, componentId, angle) =>
-    set((state) => {
-      const knobStates = [...(state.rack.knobStates ?? [])];
-      const idx = knobStates.findIndex(
-        (k) => k.placementId === placementId && k.componentId === componentId
-      );
-      if (idx >= 0) {
-        knobStates[idx] = { ...knobStates[idx], angle };
-      } else {
-        knobStates.push({ placementId, componentId, angle });
-      }
-      return { rack: { ...state.rack, knobStates } };
-    }),
+    set((state) =>
+      updateActiveRack(state, (r) => {
+        const knobStates = [...(r.knobStates ?? [])];
+        const idx = knobStates.findIndex(
+          (k) => k.placementId === placementId && k.componentId === componentId
+        );
+        if (idx >= 0) {
+          knobStates[idx] = { ...knobStates[idx], angle };
+        } else {
+          knobStates.push({ placementId, componentId, angle });
+        }
+        return { ...r, knobStates };
+      })
+    ),
 
   toggleButton: (placementId, componentId) =>
-    set((state) => {
-      const buttonStates = [...(state.rack.buttonStates ?? [])];
-      const idx = buttonStates.findIndex(
-        (b) => b.placementId === placementId && b.componentId === componentId
-      );
-      if (idx >= 0) {
-        buttonStates[idx] = { ...buttonStates[idx], pressed: !buttonStates[idx].pressed };
-      } else {
-        buttonStates.push({ placementId, componentId, pressed: true });
-      }
-      return { rack: { ...state.rack, buttonStates } };
-    }),
+    set((state) =>
+      updateActiveRack(state, (r) => {
+        const buttonStates = [...(r.buttonStates ?? [])];
+        const idx = buttonStates.findIndex(
+          (b) => b.placementId === placementId && b.componentId === componentId
+        );
+        if (idx >= 0) {
+          buttonStates[idx] = { ...buttonStates[idx], pressed: !buttonStates[idx].pressed };
+        } else {
+          buttonStates.push({ placementId, componentId, pressed: true });
+        }
+        return { ...r, buttonStates };
+      })
+    ),
 
   updateWireEndpoint: (wireId, end, newEndpoint) =>
     set((state) => {
-      const wires = state.rack.wires ?? [];
+      const rack = getActiveRack(state);
+      const wires = rack.wires ?? [];
       const wire = wires.find((w) => w.id === wireId);
       if (!wire) return state;
 
-      // Check single-wire-per-input constraint for the new endpoint
       const otherWires = wires.filter((w) => w.id !== wireId);
-      const placement = state.rack.placements.find((p) => p.id === newEndpoint.placementId);
+      const placement = rack.placements.find((p) => p.id === newEndpoint.placementId);
       if (placement) {
         const mod = state.modules.find((m) => m.id === placement.moduleId);
         if (mod) {
@@ -254,19 +278,20 @@ export const createRackSlice: StateCreator<AppStore, [], [], RackSlice> = (set) 
         }
       }
 
-      return {
-        rack: {
-          ...state.rack,
-          wires: wires.map((w) =>
-            w.id === wireId ? { ...w, [end]: newEndpoint } : w
-          ),
-        },
-      };
+      return updateActiveRack(state, (r) => ({
+        ...r,
+        wires: (r.wires ?? []).map((w) =>
+          w.id === wireId ? { ...w, [end]: newEndpoint } : w
+        ),
+      }));
     }),
 
   clearWires: () =>
     set((state) => ({
-      rack: { ...state.rack, wires: [] },
+      ...updateActiveRack(state, (r) => ({ ...r, wires: [] })),
       selectedWireIds: [],
     })),
+
+  setActiveRackView: (view) =>
+    set((state) => updateActiveRack(state, (r) => ({ ...r, view }))),
 });

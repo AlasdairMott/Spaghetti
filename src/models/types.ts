@@ -102,6 +102,12 @@ export interface ButtonState {
   pressed: boolean;
 }
 
+export interface ViewState {
+  zoom: number;
+  panX: number;
+  panY: number;
+}
+
 export interface Rack {
   id: string;
   name: string;
@@ -111,6 +117,7 @@ export interface Rack {
   wires: RackWire[];
   knobStates: KnobState[];
   buttonStates: ButtonState[];
+  view?: ViewState;
 }
 
 export interface PanelRect {
@@ -146,7 +153,16 @@ export interface Canvas {
   wires: RackWire[];
   knobStates: KnobState[];
   buttonStates: ButtonState[];
+  view?: ViewState;
 }
 
-export type AppMode = "designer" | "canvas" | "rack";
+export type AppMode = "designer" | "view";
 export type RenderMode = "wireframe" | "rendered";
+
+export interface ViewTab {
+  id: string;
+  kind: "rack" | "canvas";
+  name: string;
+  /** References a Rack.id or Canvas.id in the arrays */
+  dataId: string;
+}

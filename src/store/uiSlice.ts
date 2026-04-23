@@ -12,12 +12,6 @@ export interface UiSlice {
   panOffset: { x: number; y: number };
   audioRunning: boolean;
   faultedIds: Set<string>;
-  rackView: { zoom: number; panX: number; panY: number } | null;
-  canvasView: { zoom: number; panX: number; panY: number } | null;
-  audioSource: "rack" | "canvas";
-  setRackView: (view: { zoom: number; panX: number; panY: number }) => void;
-  setCanvasView: (view: { zoom: number; panX: number; panY: number }) => void;
-  setAudioSource: (source: "rack" | "canvas") => void;
   setMode: (mode: AppMode) => void;
   setRenderMode: (renderMode: RenderMode) => void;
   setTheme: (theme: ThemeMode) => void;
@@ -30,19 +24,13 @@ export interface UiSlice {
 export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (
   set,
 ) => ({
-  mode: "rack",
+  mode: "view",
   renderMode: "wireframe",
   theme: (localStorage.getItem("spaghetti-theme") as ThemeMode) || "dark",
   zoom: 0.33,
   panOffset: { x: 0, y: 0 },
   audioRunning: false,
   faultedIds: new Set<string>(),
-  rackView: null,
-  canvasView: null,
-  audioSource: "rack",
-  setRackView: (view) => set({ rackView: { ...view } }),
-  setCanvasView: (view) => set({ canvasView: { ...view } }),
-  setAudioSource: (source) => set({ audioSource: source }),
   setMode: (mode) => set({ mode }),
   setRenderMode: (renderMode) => set({ renderMode }),
   setTheme: (theme) => {

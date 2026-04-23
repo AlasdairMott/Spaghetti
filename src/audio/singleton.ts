@@ -63,15 +63,15 @@ export async function toggleAudio() {
     const state = useAppStore.getState();
     store.setFaultedIds(new Set());
 
-    // Determine source: if in canvas mode, play canvas; otherwise play rack
-    const source = state.mode === "canvas" ? "canvas" : "rack";
+    // Determine source from active view tab
+    const activeTab = state.viewTabs.find((t) => t.id === state.activeViewTabId);
+    const source = activeTab?.kind === "canvas" ? "canvas" : "rack";
     const rackData = source === "canvas" ? canvasToRack(state.canvas) : state.rack;
 
     try {
       await e.start(rackData, state.modules);
       engine = e;
       activeSource = source;
-      store.setAudioSource(source);
       store.setAudioRunning(true);
     } catch (err) {
       console.error("Audio engine start failed:", err);
