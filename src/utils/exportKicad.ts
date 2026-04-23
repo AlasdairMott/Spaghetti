@@ -341,6 +341,21 @@ export function buildPanelItems(module: Module): string[] {
     ].join("\n"),
   );
 
+  // Solder mask opening covering the entire front of the panel — this removes
+  // the green mask so the front is bare substrate (standard finish for Eurorack panels).
+  items.push(
+    [
+      `  (gr_rect`,
+      `    (start ${f(inset)} 0)`,
+      `    (end ${f(panelWidth - inset)} ${f(panelHeight)})`,
+      `    (stroke (width 0) (type default))`,
+      `    (fill solid)`,
+      `    (layer "F.Mask")`,
+      `    (uuid "${uuid()}")`,
+      `  )`,
+    ].join("\n"),
+  );
+
   // Mounting holes — left side always, right side if panel wide enough
   const mountY1 = 3.0;
   const mountY2 = panelHeight - 3.0;
