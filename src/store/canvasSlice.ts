@@ -98,8 +98,11 @@ function getActiveCanvas(state: AppStore): Canvas {
 
 function updateActiveCanvas(state: AppStore, updater: (canvas: Canvas) => Canvas): Partial<AppStore> {
   const active = getActiveCanvas(state);
+  const newCanvases = state.canvases.map((c) => (c.id === active.id ? updater(c) : c));
+  const newActive = newCanvases.find((c) => c.id === active.id) ?? active;
   return {
-    canvases: state.canvases.map((c) => (c.id === active.id ? updater(c) : c)),
+    canvases: newCanvases,
+    canvas: newActive,
   };
 }
 

@@ -48,8 +48,11 @@ function getActiveRack(state: AppStore): Rack {
 
 function updateActiveRack(state: AppStore, updater: (rack: Rack) => Rack): Partial<AppStore> {
   const active = getActiveRack(state);
+  const newRacks = state.racks.map((r) => (r.id === active.id ? updater(r) : r));
+  const newActive = newRacks.find((r) => r.id === active.id) ?? active;
   return {
-    racks: state.racks.map((r) => (r.id === active.id ? updater(r) : r)),
+    racks: newRacks,
+    rack: newActive,
   };
 }
 

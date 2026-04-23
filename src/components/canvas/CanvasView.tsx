@@ -28,6 +28,7 @@ export function CanvasView() {
   const canvasRemovePlacement = useAppStore((s) => s.canvasRemovePlacement);
   const canvasClearWires = useAppStore((s) => s.canvasClearWires);
   const saveModule = useAppStore((s) => s.saveModule);
+  const deleteModule = useAppStore((s) => s.deleteModule);
   const canvasSelectedPlacementIds = useAppStore(
     (s) => s.canvasSelectedPlacementIds,
   );
@@ -291,7 +292,12 @@ export function CanvasView() {
                     key={mod.id}
                     module={mod}
                     onDragStart={() => {}}
-                    onDelete={() => {}}
+                    onDelete={(moduleId) => {
+                      canvas.placements
+                        .filter((p) => p.moduleId === moduleId)
+                        .forEach((p) => canvasRemovePlacement(p.id));
+                      deleteModule(moduleId);
+                    }}
                     onEdit={(moduleId) => {
                       const m = modules.find((x) => x.id === moduleId);
                       if (m) {
