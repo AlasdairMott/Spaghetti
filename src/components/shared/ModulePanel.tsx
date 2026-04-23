@@ -159,7 +159,7 @@ export function ModulePanel({
           <g key={comp.id} transform={`translate(${pos.x}, ${pos.y})`}>
             {comp.kind === "jack" ? (
               <g pointerEvents="none">
-                <JackShape stroke={compStroke} />
+                <JackShape stroke={compStroke} blackSquare={comp.jackBlackSquare} />
               </g>
             ) : comp.kind === "pot" ? (
               <g

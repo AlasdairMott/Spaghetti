@@ -33,6 +33,8 @@ export interface PanelComponent {
   labelAngle?: number;
   /** Jack direction: input, output, both, or headphones (only for kind="jack") */
   jackDirection?: "input" | "output" | "both" | "headphones";
+  /** Draw a filled black square behind the jack (commonly used to mark outputs) */
+  jackBlackSquare?: boolean;
   /** Minimum voltage in volts (only for kind="jack", default -10) */
   voltageMin?: number;
   /** Maximum voltage in volts (only for kind="jack", default 10) */

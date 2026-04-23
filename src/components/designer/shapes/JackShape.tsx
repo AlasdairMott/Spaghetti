@@ -3,10 +3,14 @@ import jackPngUrl from "../../../assets/jack.png";
 
 interface Props {
   stroke?: string;
+  blackSquare?: boolean;
 }
 
-export function JackShape({ stroke = "#aaa" }: Props) {
+export const JACK_BLACK_SQUARE_SIZE = 9;
+
+export function JackShape({ stroke = "#aaa", blackSquare = false }: Props) {
   const renderMode = useAppStore((s) => s.renderMode);
+  const half = JACK_BLACK_SQUARE_SIZE / 2;
 
   if (renderMode === "rendered") {
     const size = 8;
@@ -22,6 +26,15 @@ export function JackShape({ stroke = "#aaa" }: Props) {
             />
           </filter>
         </defs>
+        {blackSquare && (
+          <rect
+            x={-half}
+            y={-half}
+            width={JACK_BLACK_SQUARE_SIZE}
+            height={JACK_BLACK_SQUARE_SIZE}
+            fill="#111"
+          />
+        )}
         <image
           href={jackPngUrl}
           x={-size / 2}
@@ -36,6 +49,15 @@ export function JackShape({ stroke = "#aaa" }: Props) {
 
   return (
     <>
+      {blackSquare && (
+        <rect
+          x={-half}
+          y={-half}
+          width={JACK_BLACK_SQUARE_SIZE}
+          height={JACK_BLACK_SQUARE_SIZE}
+          fill="#111"
+        />
+      )}
       <circle r={3.7} fill="none" stroke={stroke} strokeWidth={0.3} />
       <circle r={2} fill="#333" stroke="#888" strokeWidth={0.2} />
     </>

@@ -294,6 +294,25 @@ function SingleComponentEditor({
       )}
 
       {component.kind === "jack" && (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={component.jackBlackSquare ?? false}
+            onChange={(e) =>
+              updateComponent(component.id, { jackBlackSquare: e.target.checked })
+            }
+            id="jack-square-toggle"
+          />
+          <label
+            htmlFor="jack-square-toggle"
+            className="text-[13px] text-text cursor-pointer"
+          >
+            Black square behind jack
+          </label>
+        </div>
+      )}
+
+      {component.kind === "jack" && (
         <>
           <div>
             <span className={labelCls}>Direction</span>
@@ -588,6 +607,21 @@ function MultiComponentEditor({
               className="text-[13px] text-text cursor-pointer"
             >
               LED (left of jack)
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={sharedValue(components, "jackBlackSquare") ?? false}
+              onChange={(e) => applyUpdate({ jackBlackSquare: e.target.checked })}
+              id="multi-jack-square-toggle"
+            />
+            <label
+              htmlFor="multi-jack-square-toggle"
+              className="text-[13px] text-text cursor-pointer"
+            >
+              Black square behind jack
             </label>
           </div>
 

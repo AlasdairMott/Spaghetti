@@ -32,7 +32,7 @@ export function JackSymbol({
       onDoubleClick={onDoubleClick}
       style={{ cursor: "pointer" }}
     >
-      <JackShape stroke={isSelected ? "#4af" : "#aaa"} />
+      <JackShape stroke={isSelected ? "#4af" : "#aaa"} blackSquare={component.jackBlackSquare} />
       {component.hasLed && (
         <g transform="translate(-6.35, 0)">
           <LedShape />

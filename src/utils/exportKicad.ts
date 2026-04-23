@@ -19,6 +19,8 @@ const POT_HOLE_DIAMETER = 7.5;
 const BUTTON_HOLE_DIAMETER = 5.2;
 const LED_HOLE_DIAMETER = 3.4;
 const MOUNTING_HOLE_DIAMETER = 3.2;
+// Keep in sync with the same constant in designer/shapes/JackShape.tsx
+const JACK_BLACK_SQUARE_SIZE = 9;
 
 const LABEL_FONT_SIZE = 2.5;
 const MODULE_NAME_FONT_SIZE = 3.2;
@@ -442,6 +444,21 @@ export function buildPanelItems(module: Module): string[] {
     const pos = gridToMm(comp.position);
 
     if (comp.kind === "jack") {
+      if (comp.jackBlackSquare) {
+        const half = JACK_BLACK_SQUARE_SIZE / 2;
+        items.push(
+          [
+            `  (gr_rect`,
+            `    (start ${f(pos.x - half)} ${f(pos.y - half)})`,
+            `    (end ${f(pos.x + half)} ${f(pos.y + half)})`,
+            `    (stroke (width 0) (type default))`,
+            `    (fill solid)`,
+            `    (layer "F.SilkS")`,
+            `    (uuid "${uuid()}")`,
+            `  )`,
+          ].join("\n"),
+        );
+      }
       items.push(npthPad(pos.x, pos.y, JACK_HOLE_DIAMETER));
       pushLabel(items, comp, pos.x, pos.y, pos.y - 5 - 0.8);
     } else if (comp.kind === "pot") {
