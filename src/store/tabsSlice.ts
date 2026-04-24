@@ -13,7 +13,6 @@ export interface TabsSlice {
 
 export const createTabsSlice: StateCreator<AppStore, [], [], TabsSlice> = (
   set,
-  get,
 ) => ({
   viewTabs: [],
   activeViewTabId: "",

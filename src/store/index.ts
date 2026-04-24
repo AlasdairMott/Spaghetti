@@ -76,7 +76,7 @@ export const useAppStore = create<AppStore>()(
         if (!state) return;
 
         // Migration: old format had `rack` and `canvas` as singletons
-        const raw = state as Record<string, unknown>;
+        const raw = state as unknown as Record<string, unknown>;
         if (raw.rack && typeof raw.rack === "object" && !state.racks?.length) {
           const oldRack = raw.rack as typeof defaultRack;
           const oldCanvas = (raw.canvas as typeof defaultCanvas) ?? structuredClone(defaultCanvas);
