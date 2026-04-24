@@ -158,7 +158,7 @@ export interface Canvas {
   view?: ViewState;
 }
 
-export type AppMode = "designer" | "view";
+export type AppMode = "designer" | "view" | "library";
 export type RenderMode = "wireframe" | "rendered";
 
 export interface ViewTab {

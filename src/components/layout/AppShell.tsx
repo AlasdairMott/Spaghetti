@@ -4,6 +4,7 @@ import { Toolbar } from "./Toolbar";
 import { DesignerView } from "../designer/DesignerView";
 import { CanvasView } from "../canvas/CanvasView";
 import { RackView } from "../rack/RackView";
+import { LibraryView } from "../library/LibraryView";
 
 export function AppShell() {
   const mode = useAppStore((s) => s.mode);
@@ -22,6 +23,7 @@ export function AppShell() {
     <div className="flex flex-col h-screen w-screen overflow-hidden text-text font-sans">
       <Toolbar />
       {mode === "designer" && <DesignerView />}
+      {mode === "library" && <LibraryView />}
       {mode === "view" && activeTab?.kind === "rack" && (
         <RackView key={activeTab.dataId} />
       )}

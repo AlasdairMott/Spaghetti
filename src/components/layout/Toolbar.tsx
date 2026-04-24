@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore } from "../../store";
 import type { Module } from "../../models/types";
-import { Sun, Moon, Play, Square, Menu, LayoutGrid, Frame } from "lucide-react";
+import { Sun, Moon, Play, Square, Menu, LayoutGrid, Frame, Library } from "lucide-react";
 import { toggleAudio } from "../../audio/singleton";
 import { Tabs } from "../ui/Tabs";
 import type { Tab } from "../ui/Tabs";
@@ -260,6 +260,18 @@ export function Toolbar() {
         ) : (
           <Play size={14} fill="currentColor" />
         )}
+      </button>
+
+      {/* Library standalone button */}
+      <button
+        onClick={() => setMode("library")}
+        className={`px-3 py-1 text-[13px] cursor-pointer border-none rounded-t-md relative inline-flex items-center gap-1.5 ${
+          mode === "library"
+            ? " text-text font-medium after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-accent"
+            : "bg-transparent text-text-dim hover:text-text-muted"
+        }`}
+      >
+        <Library size={13} /> Library
       </button>
 
       {/* Module Designer standalone button */}

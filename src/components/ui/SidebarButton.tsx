@@ -19,6 +19,7 @@ interface Props {
   variant?: Variant;
   className?: string;
   disabled?: boolean;
+  title?: string;
 }
 
 export function SidebarButton({
@@ -27,11 +28,13 @@ export function SidebarButton({
   variant = "default",
   className = "",
   disabled = false,
+  title,
 }: Props) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={`${base} ${variants[variant]} ${disabled ? "opacity-40 pointer-events-none" : ""} ${className}`}
     >
       {children}
