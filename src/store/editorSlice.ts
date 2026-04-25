@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { Module, PanelComponent, ComponentKind, GridPosition, Tool, ConnectionKind, MmPoint, Connection, PanelRect } from "../models/types";
 import type { AppStore } from "./index";
+import { GRID_X, GRID_Y } from "../constants/grid";
 
 const MAX_HISTORY = 100;
 
@@ -44,7 +45,11 @@ export interface EditorSlice {
   moveComponentsByDelta: (ids: string[], deltaX: number, deltaY: number) => void;
   moveConnectionsByDelta: (ids: string[], dxMm: number, dyMm: number) => void;
   moveRectsByDelta: (ids: string[], dxMm: number, dyMm: number) => void;
-  duplicateComponent: (id: string) => string | null;
+  duplicateItems: (componentIds: string[], connectionIds: string[], rectIds: string[]) => { componentIds: string[]; connectionIds: string[]; rectIds: string[] } | null;
+  clipboard: { components: PanelComponent[]; connections: Connection[]; rects: PanelRect[] } | null;
+  copySelection: () => void;
+  cutSelection: () => void;
+  pasteSelection: () => void;
   pushSnapshot: () => void;
 
   updateModuleCode: (code: string) => void;
@@ -55,6 +60,16 @@ export interface EditorSlice {
 
   undo: () => void;
   redo: () => void;
+}
+
+/** Resolve the current selection to concrete item arrays. */
+function resolveSelection(state: AppStore) {
+  const mod = state.editingModule!;
+  return {
+    components: state.selectedComponentIds.map((id) => mod.components.find((c) => c.id === id)).filter(Boolean) as PanelComponent[],
+    connections: state.selectedConnectionIds.map((id) => (mod.connections ?? []).find((c) => c.id === id)).filter(Boolean) as Connection[],
+    rects: state.selectedRectIds.map((id) => (mod.rects ?? []).find((r) => r.id === id)).filter(Boolean) as PanelRect[],
+  };
 }
 
 /** Push current editingModule onto history, clear future */
@@ -77,6 +92,7 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
   selectedRectIds: [],
   _history: [],
   _future: [],
+  clipboard: null,
 
   openModuleForEditing: (module) => {
     const mod = JSON.parse(JSON.stringify(module));
@@ -365,23 +381,94 @@ export const createEditorSlice: StateCreator<AppStore, [], [], EditorSlice> = (s
       };
     }),
 
-  duplicateComponent: (id) => {
+  duplicateItems: (componentIds, connectionIds, rectIds) => {
     const state = get();
     if (!state.editingModule) return null;
-    const comp = state.editingModule.components.find((c) => c.id === id);
-    if (!comp) return null;
-    const newId = crypto.randomUUID();
-    const clone: PanelComponent = { ...comp, id: newId };
+    const reId = <T extends { id: string }>(item: T): T => ({ ...item, id: crypto.randomUUID() });
+    const mod = state.editingModule;
+    const newComponents = componentIds.map((id) => mod.components.find((c) => c.id === id)).filter(Boolean).map((c) => reId(c!));
+    const newConnections = connectionIds.map((id) => (mod.connections ?? []).find((c) => c.id === id)).filter(Boolean).map((c) => reId(c!));
+    const newRects = rectIds.map((id) => (mod.rects ?? []).find((r) => r.id === id)).filter(Boolean).map((r) => reId(r!));
+    const sel = {
+      componentIds: newComponents.map((c) => c.id),
+      connectionIds: newConnections.map((c) => c.id),
+      rectIds: newRects.map((r) => r.id),
+    };
+    set({
+      ...pushHistory(state),
+      editingModule: {
+        ...mod,
+        components: [...mod.components, ...newComponents],
+        connections: [...(mod.connections ?? []), ...newConnections],
+        rects: [...(mod.rects ?? []), ...newRects],
+      },
+      selectedComponentIds: sel.componentIds,
+      selectedComponentId: sel.componentIds.length === 1 ? sel.componentIds[0] : null,
+      selectedConnectionIds: sel.connectionIds,
+      selectedConnectionId: sel.connectionIds.length === 1 ? sel.connectionIds[0] : null,
+      selectedRectIds: sel.rectIds,
+      selectedRectId: sel.rectIds.length === 1 ? sel.rectIds[0] : null,
+    });
+    return sel;
+  },
+
+  copySelection: () => {
+    const state = get();
+    if (!state.editingModule) return;
+    const sel = resolveSelection(state);
+    if (!sel.components.length && !sel.connections.length && !sel.rects.length) return;
+    set({ clipboard: sel });
+  },
+
+  cutSelection: () => {
+    const state = get();
+    if (!state.editingModule) return;
+    const sel = resolveSelection(state);
+    if (!sel.components.length && !sel.connections.length && !sel.rects.length) return;
+    const compSet = new Set(state.selectedComponentIds);
+    const connSet = new Set(state.selectedConnectionIds);
+    const rectSet = new Set(state.selectedRectIds);
+    set({
+      ...pushHistory(state),
+      clipboard: sel,
+      editingModule: {
+        ...state.editingModule,
+        components: state.editingModule.components.filter((c) => !compSet.has(c.id)),
+        connections: (state.editingModule.connections ?? []).filter((c) => !connSet.has(c.id)),
+        rects: (state.editingModule.rects ?? []).filter((r) => !rectSet.has(r.id)),
+      },
+      selectedComponentId: null, selectedComponentIds: [],
+      selectedConnectionId: null, selectedConnectionIds: [],
+      selectedRectId: null, selectedRectIds: [],
+    });
+  },
+
+  pasteSelection: () => {
+    const state = get();
+    if (!state.editingModule || !state.clipboard) return;
+    const { components, connections, rects } = state.clipboard;
+    const reId = <T extends { id: string }>(item: T): T => ({ ...item, id: crypto.randomUUID() });
+    const newComponents = components.map((c) => ({ ...reId(c), position: { gridX: c.position.gridX + 1, gridY: c.position.gridY + 1 } }));
+    const newConnections = connections.map((c) => ({ ...reId(c), from: { x: c.from.x + GRID_X, y: c.from.y + GRID_Y }, to: { x: c.to.x + GRID_X, y: c.to.y + GRID_Y } }));
+    const newRects = rects.map((r) => ({ ...reId(r), from: { x: r.from.x + GRID_X, y: r.from.y + GRID_Y }, to: { x: r.to.x + GRID_X, y: r.to.y + GRID_Y } }));
+    const compIds = newComponents.map((c) => c.id);
+    const connIds = newConnections.map((c) => c.id);
+    const rectIds = newRects.map((r) => r.id);
     set({
       ...pushHistory(state),
       editingModule: {
         ...state.editingModule,
-        components: [...state.editingModule.components, clone],
+        components: [...state.editingModule.components, ...newComponents],
+        connections: [...(state.editingModule.connections ?? []), ...newConnections],
+        rects: [...(state.editingModule.rects ?? []), ...newRects],
       },
-      selectedComponentId: newId,
-      selectedComponentIds: [newId],
+      selectedComponentIds: compIds,
+      selectedComponentId: compIds.length === 1 ? compIds[0] : null,
+      selectedConnectionIds: connIds,
+      selectedConnectionId: connIds.length === 1 ? connIds[0] : null,
+      selectedRectIds: rectIds,
+      selectedRectId: rectIds.length === 1 ? rectIds[0] : null,
     });
-    return newId;
   },
 
   updateModuleCode: (code) =>

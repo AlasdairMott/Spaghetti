@@ -15,7 +15,7 @@ export function useDragComponent() {
   const selectedConnectionIds = useAppStore((s) => s.selectedConnectionIds);
   const selectedRectIds = useAppStore((s) => s.selectedRectIds);
   const pushSnapshot = useAppStore((s) => s.pushSnapshot);
-  const duplicateComponent = useAppStore((s) => s.duplicateComponent);
+  const duplicateItems = useAppStore((s) => s.duplicateItems);
   const activeTool = useAppStore((s) => s.activeTool);
   const isDragging = useRef(false);
   const dragId = useRef<string | null>(null);
@@ -33,14 +33,16 @@ export function useDragComponent() {
       lastGrid.current = snapped;
 
       if (e.altKey) {
-        const newId = duplicateComponent(componentId);
-        if (newId) {
-          dragId.current = newId;
-          dragMulti.current = false;
-        } else {
-          dragId.current = componentId;
-          dragMulti.current = false;
-          pushSnapshot();
+        const isInSelection = selectedComponentIds.includes(componentId);
+        const multi = isInSelection && (selectedComponentIds.length + selectedConnectionIds.length + selectedRectIds.length) > 1;
+        const result = duplicateItems(
+          multi ? selectedComponentIds : [componentId],
+          multi ? selectedConnectionIds : [],
+          multi ? selectedRectIds : [],
+        );
+        if (result?.componentIds.length) {
+          dragId.current = result.componentIds[0];
+          dragMulti.current = multi;
         }
       } else {
         const isInSelection = selectedComponentIds.includes(componentId);
@@ -67,7 +69,7 @@ export function useDragComponent() {
 
       (e.target as SVGElement).setPointerCapture(e.pointerId);
     },
-    [activeTool, selectComponent, selectItems, selectedComponentIds, selectedConnectionIds, selectedRectIds, pushSnapshot, duplicateComponent]
+    [activeTool, selectComponent, selectItems, selectedComponentIds, selectedConnectionIds, selectedRectIds, pushSnapshot, duplicateItems]
   );
 
   const handleComponentPointerMove = useCallback(

@@ -121,6 +121,7 @@ export function ConnectionLayer({ svgRef }: { svgRef: React.RefObject<SVGSVGElem
   const selectedConnectionIds = useAppStore((s) => s.selectedConnectionIds);
   const selectConnection = useAppStore((s) => s.selectConnection);
   const selectItems = useAppStore((s) => s.selectItems);
+  const duplicateItems = useAppStore((s) => s.duplicateItems);
   const moveConnectionsByDelta = useAppStore((s) => s.moveConnectionsByDelta);
   const moveComponentsByDelta = useAppStore((s) => s.moveComponentsByDelta);
   const moveRectsByDelta = useAppStore((s) => s.moveRectsByDelta);
@@ -145,22 +146,31 @@ export function ConnectionLayer({ svgRef }: { svgRef: React.RefObject<SVGSVGElem
     downShift.current = e.shiftKey;
     didMove.current = false;
 
-    if (e.shiftKey) {
-      const connIds = isInSelection
-        ? s.selectedConnectionIds.filter((id) => id !== connId)
-        : [...s.selectedConnectionIds, connId];
-      selectItems(s.selectedComponentIds, connIds, s.selectedRectIds);
-    } else if (!isInSelection || totalSelected <= 1) {
-      selectConnection(connId);
+    if (e.altKey) {
+      const multi = isInSelection && totalSelected > 1;
+      duplicateItems(
+        multi ? s.selectedComponentIds : [],
+        multi ? s.selectedConnectionIds : [connId],
+        multi ? s.selectedRectIds : [],
+      );
+      // duplicateItems pushes history; selection is now the clones
+    } else {
+      if (e.shiftKey) {
+        const connIds = isInSelection
+          ? s.selectedConnectionIds.filter((id) => id !== connId)
+          : [...s.selectedConnectionIds, connId];
+        selectItems(s.selectedComponentIds, connIds, s.selectedRectIds);
+      } else if (!isInSelection || totalSelected <= 1) {
+        selectConnection(connId);
+      }
+      pushSnapshot();
     }
-    // If already in multi-selection, don't change selection — just start drag
 
-    pushSnapshot();
     dragging.current = true;
     const pt = screenToSvg(svgRef.current, e.clientX, e.clientY);
     lastMm.current = snapToQuarterGrid(pt.x, pt.y);
     (e.target as SVGElement).setPointerCapture(e.pointerId);
-  }, [activeTool, svgRef, selectConnection, selectItems, pushSnapshot]);
+  }, [activeTool, svgRef, selectConnection, selectItems, duplicateItems, pushSnapshot]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGElement>) => {
     if (!dragging.current || !svgRef.current) return;

@@ -21,6 +21,9 @@ export function DesignerView() {
   const selectComponent = useAppStore((s) => s.selectComponent);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
+  const copySelection = useAppStore((s) => s.copySelection);
+  const cutSelection = useAppStore((s) => s.cutSelection);
+  const pasteSelection = useAppStore((s) => s.pasteSelection);
 
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeWidth, setCodeWidth] = useState(() => {
@@ -37,15 +40,27 @@ export function DesignerView() {
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
       if ((e.target as HTMLElement).closest(".monaco-editor")) return;
 
-      // Undo/Redo
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          if (e.shiftKey) redo(); else undo();
+          return;
         }
-        return;
+        if (e.key.toLowerCase() === "c") {
+          e.preventDefault();
+          copySelection();
+          return;
+        }
+        if (e.key.toLowerCase() === "x") {
+          e.preventDefault();
+          cutSelection();
+          return;
+        }
+        if (e.key.toLowerCase() === "v") {
+          e.preventDefault();
+          pasteSelection();
+          return;
+        }
       }
 
       switch (e.key.toLowerCase()) {
@@ -107,6 +122,9 @@ export function DesignerView() {
     selectComponent,
     undo,
     redo,
+    copySelection,
+    cutSelection,
+    pasteSelection,
   ]);
 
   // Auto-create a module if none is open

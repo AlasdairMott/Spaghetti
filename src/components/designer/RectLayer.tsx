@@ -116,6 +116,8 @@ function RectItem({ rect, isSelected, onClick, svgRef }: RectItemProps) {
   const renderMode = useAppStore((s) => s.renderMode);
   const theme = useAppStore((s) => s.theme);
   const updateRect = useAppStore((s) => s.updateRect);
+  const duplicateItems = useAppStore((s) => s.duplicateItems);
+  const moveRectsByDelta = useAppStore((s) => s.moveRectsByDelta);
 
   // Live preview for both resize and move
   const [liveFrom, setLiveFrom] = useState<MmPoint | null>(null);
@@ -129,6 +131,7 @@ function RectItem({ rect, isSelected, onClick, svgRef }: RectItemProps) {
     origTo: MmPoint;
   } | null>(null);
   const hasMoved = useRef(false);
+  const isAltDrag = useRef(false);
 
   const displayFrom = liveFrom ?? rect.from;
   const displayTo = liveTo ?? rect.to;
@@ -178,6 +181,7 @@ function RectItem({ rect, isSelected, onClick, svgRef }: RectItemProps) {
       origTo: rect.to,
     };
     hasMoved.current = false;
+    isAltDrag.current = e.altKey;
   };
 
   const handleMovePointerMove = (e: React.PointerEvent<SVGRectElement>) => {
@@ -209,12 +213,20 @@ function RectItem({ rect, isSelected, onClick, svgRef }: RectItemProps) {
     if (!hasMoved.current) {
       onClick(rect.id);
     } else if (liveFrom && liveTo) {
-      updateRect(rect.id, { from: liveFrom, to: liveTo });
+      if (isAltDrag.current) {
+        const result = duplicateItems([], [], [rect.id]);
+        if (result?.rectIds.length) {
+          moveRectsByDelta(result.rectIds, liveFrom.x - rect.from.x, liveFrom.y - rect.from.y);
+        }
+      } else {
+        updateRect(rect.id, { from: liveFrom, to: liveTo });
+      }
     }
     setLiveFrom(null);
     setLiveTo(null);
     moveDrag.current = null;
     hasMoved.current = false;
+    isAltDrag.current = false;
   };
 
   return (
